@@ -1,0 +1,260 @@
+from database import engine
+from sqlalchemy import text
+import pandas as pd
+
+def add_employee(
+    employee_code,
+    fullname,
+    department,
+    position
+):
+
+    with engine.connect() as conn:
+
+        conn.execute(
+            text("""
+            INSERT INTO employees(
+                employee_code,
+                fullname,
+                department,
+                position,
+                status
+            )
+            VALUES(
+                :employee_code,
+                :fullname,
+                :department,
+                :position,
+                'Đang làm'
+            )
+            """),
+            {
+                "employee_code": employee_code,
+                "fullname": fullname,
+                "department": department,
+                "position": position
+            }
+        )
+
+        conn.commit()
+
+
+def get_employees(keyword=""):
+
+    with engine.connect() as conn:
+        result = conn.execute(
+            text("""
+            SELECT
+                e.employee_code,
+                e.fullname,
+                e.department,
+                e.position,
+                COALESCE(s.shift_name,'Chưa gán'),
+                COALESCE(e.status,'Đang làm')
+
+            FROM employees e
+
+            LEFT JOIN shifts s
+                ON e.shift_code=s.shift_code
+
+            WHERE
+                e.employee_code ILIKE :keyword
+                OR e.fullname ILIKE :keyword
+
+            ORDER BY e.fullname
+            """),
+            {
+                "keyword": f"%{keyword}%"
+            }
+        )
+
+        rows = result.fetchall()
+
+    return pd.DataFrame(
+        rows,
+        columns=[
+            "Mã NV",
+            "Họ tên",
+            "Phòng ban",
+            "Chức vụ",
+            "Ca làm",
+            "Trạng thái"
+        ]
+    )
+def delete_employee(employee_code):
+
+    with engine.connect() as conn:
+
+        conn.execute(
+            text("""
+            DELETE FROM employees
+            WHERE employee_code=:employee_code
+            """),
+            {
+                "employee_code": employee_code
+            }
+        )
+
+        conn.commit()
+def get_employee_codes():
+
+    with engine.connect() as conn:
+
+        result = conn.execute(
+            text("""
+            SELECT employee_code
+            FROM employees
+            ORDER BY employee_code
+            """)
+        )
+
+        rows = result.fetchall()
+
+    return [r[0] for r in rows]
+
+def assign_shift(
+    employee_code,
+    shift_code
+):
+
+    with engine.connect() as conn:
+
+        conn.execute(
+            text("""
+            UPDATE employees
+            SET shift_code=:shift_code
+            WHERE employee_code=:employee_code
+            """),
+            {
+                "shift_code": shift_code,
+                "employee_code": employee_code
+            }
+        )
+
+        conn.commit()
+        
+        
+def update_employee(
+    employee_code,
+    fullname,
+    department,
+    position,
+    shift_code
+):
+
+    with engine.connect() as conn:
+
+        conn.execute(
+            text("""
+            UPDATE employees
+            SET
+                fullname=:fullname,
+                department=:department,
+                position=:position,
+                shift_code=:shift_code
+            WHERE employee_code=:employee_code
+            """),
+            {
+                "employee_code": employee_code,
+                "fullname": fullname,
+                "department": department,
+                "position": position,
+                "shift_code": shift_code
+            }
+        )
+
+        conn.commit()
+
+
+
+
+
+def get_employee(employee_code):
+
+    with engine.connect() as conn:
+
+        result = conn.execute(
+            text("""
+            SELECT *
+            FROM employees
+            WHERE employee_code=:employee_code
+            """),
+            {
+                "employee_code": employee_code
+            }
+        )
+
+        row = result.fetchone()
+
+    if row:
+        return dict(row._mapping)
+
+    return None
+
+def get_employee_count():
+
+    with engine.connect() as conn:
+
+        result = conn.execute(
+            text("""
+            SELECT COUNT(*)
+            FROM employees
+            """)
+        )
+
+        return result.scalar()
+
+
+def get_active_employee_count():
+
+    with engine.connect() as conn:
+
+        result = conn.execute(
+            text("""
+            SELECT COUNT(*)
+            FROM employees
+            WHERE COALESCE(status,'Đang làm')='Đang làm'
+            """)
+        )
+
+        return result.scalar()
+    
+def get_not_attendance_count():
+
+    from attendance_log import (
+        get_today_attendance_count
+    )
+
+    total = get_employee_count()
+
+    checked = get_today_attendance_count()
+
+    return total - checked
+
+def get_not_attendance_employees():
+
+    from attendance_log import (
+        get_today_attendance_employees
+    )
+
+    checked = get_today_attendance_employees()
+
+    with engine.connect() as conn:
+
+        result = conn.execute(
+            text("""
+            SELECT
+                employee_code,
+                fullname
+            FROM employees
+            ORDER BY fullname
+            """)
+        )
+
+        rows = result.fetchall()
+
+    return [
+        row
+        for row in rows
+        if row[0] not in checked
+    ]
