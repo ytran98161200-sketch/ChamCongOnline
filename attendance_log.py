@@ -1,48 +1,64 @@
+from datetime import datetime, datetime, timedelta
+
 from database import engine
-from sqlalchemy import text
+from sqlalchemy import log, text
 import pandas as pd
-from datetime import datetime
-from zoneinfo import ZoneInfo
 
-def add_log(employee_code, note=""):
 
-    vietnam_time = datetime.now()
+def add_log(
+    employee_code,
+    note="",
+    ip_address="",
+    device_info=""
+):
+
+    from datetime import datetime, timedelta
+    vietnam_time = datetime.utcnow() + timedelta(hours=7)
+
 
     with engine.connect() as conn:
-
         conn.execute(
             text("""
             INSERT INTO attendance_logs(
                 employee_code,
                 scan_time,
-                note
+                note,
+                ip_address,
+                device_info
             )
             VALUES(
                 :employee_code,
                 :scan_time,
-                :note
+                :note,
+                :ip_address,
+                :device_info
             )
             """),
             {
+                
                 "employee_code": employee_code,
                 "scan_time": vietnam_time,
-                "note": note
+                "note": note,
+                "ip_address": ip_address,
+                "device_info": device_info
+            
             }
         )
-        print("GIỜ VN:", vietnam_time)
+        
         conn.commit()
 
 def get_today_logs(employee_code):
 
     with engine.connect() as conn:
-
         result = conn.execute(
             text("""
-            SELECT scan_time
+            SELECT scan_time,
+                note,
+                ip_address,
+                device_info
             FROM attendance_logs
             WHERE employee_code=:employee_code
-            AND DATE(scan_time)=CURRENT_DATE
-            ORDER BY scan_time
+            ORDER BY scan_time ASC
             """),
             {
                 "employee_code": employee_code
@@ -56,14 +72,15 @@ import pandas as pd
 def get_all_logs():
 
     with engine.connect() as conn:
-
         result = conn.execute(
             text("""
-            SELECT
+                SELECT
                 a.scan_time,
                 a.employee_code,
                 e.fullname,
-                COALESCE(a.note,'')
+                COALESCE(a.note,''),
+                COALESCE(a.ip_address,''),
+                COALESCE(a.device_info,'')
             FROM attendance_logs a
 
             LEFT JOIN employees e
@@ -81,7 +98,9 @@ def get_all_logs():
             "Thời gian",
             "Mã NV",
             "Họ tên",
-            "Ghi chú"
+            "Ghi chú",
+            "IP",
+            "Thiết bị"
         ]
     )
 
@@ -93,11 +112,13 @@ def get_logs_by_date(selected_date, employee_code=None):
 
             result = conn.execute(
                 text("""
-                SELECT
+                    SELECT
                     a.scan_time,
                     a.employee_code,
                     e.fullname,
-                    COALESCE(a.note,'')
+                    COALESCE(a.note,''),
+                    COALESCE(a.ip_address,''),
+                    COALESCE(a.device_info,'')
 
                 FROM attendance_logs a
 
@@ -120,11 +141,13 @@ def get_logs_by_date(selected_date, employee_code=None):
 
             result = conn.execute(
                 text("""
-                SELECT
+                    SELECT
                     a.scan_time,
                     a.employee_code,
                     e.fullname,
-                    COALESCE(a.note,'')
+                    COALESCE(a.note,''),
+                    COALESCE(a.ip_address,''),
+                    COALESCE(a.device_info,'')
 
                 FROM attendance_logs a
 
@@ -148,7 +171,9 @@ def get_logs_by_date(selected_date, employee_code=None):
             "Thời gian",
             "Mã NV",
             "Họ tên",
-            "Ghi chú"
+            "Ghi chú",
+            "IP",
+            "Thiết bị"
         ]
     )
     
@@ -268,3 +293,21 @@ def get_daily_summary(selected_date):
             "Ra chiều"
         ]
     )
+    
+def get_today_log_count(employee_code):
+
+    with engine.connect() as conn:
+
+        result = conn.execute(
+            text("""
+            SELECT COUNT(*)
+            FROM attendance_logs
+            WHERE employee_code=:employee_code
+            AND DATE(scan_time)=CURRENT_DATE
+            """),
+            {
+                "employee_code": employee_code
+            }
+        )
+
+        return result.scalar() or 0

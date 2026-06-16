@@ -68,7 +68,8 @@ else:
                 "Đơn từ",
                 "Duyệt đơn",
                 "Tài khoản",
-                "Báo cáo"
+                "Báo cáo",
+                "Đổi mật khẩu"
             ]
         )
 
@@ -82,7 +83,8 @@ else:
                 "Ca làm việc",
                 "Chấm công",
                 "Nhật ký chấm công",
-                "Báo cáo"
+                "Báo cáo",
+                "Đổi mật khẩu"
             ]
         )
 
@@ -93,7 +95,9 @@ else:
             [
                 "Dashboard",
                 "Nhật ký chấm công",
-                "Duyệt phép"
+                "Duyệt phép",
+                "Chấm công",
+                "Đổi mật khẩu"
             ]
         )
 
@@ -103,7 +107,8 @@ else:
             "Chọn chức năng",
             [
                 "Chấm công",
-                "Đơn từ"
+                "Đơn từ",
+                "Đổi mật khẩu"
             ]
         )
 
@@ -221,11 +226,71 @@ else:
             search = st.text_input(
                 "🔍 Tìm kiếm nhân viên"
             )
+            employees = get_employees()
+
+            search = st.text_input(
+                "🔍 Tìm kiếm nhân viên"
+            )
+
+            if search:
+
+                employees = employees[
+                    employees.astype(str)
+                    .apply(
+                        lambda x: x.str.contains(
+                            search,
+                            case=False,
+                            na=False
+                        )
+                    )
+                    .any(axis=1)
+                ]
 
             st.dataframe(
-                get_employees(search),
+                employees,
                 use_container_width=True
-            )
+)
+            # display_df = employees.copy()
+            # edited_df = st.data_editor(
+            #     display_df,
+            #     use_container_width=True,
+            #     disabled=[
+            #         "Tài khoản",
+            #         "Họ tên",
+            #         "Phòng ban",
+            #         "Mã NV"
+            #     ]
+            # )
+            # if st.button(
+            #     "💾 Lưu thay đổi",
+            #     use_container_width=True
+            # ):
+
+            role_map = {
+                    "Quản trị hệ thống": "admin",
+                    "Trưởng phòng": "manager",
+                    "Người duyệt đơn": "approver",
+                    "Nhân viên": "employee"
+                }
+
+            for _, row in edited_df.iterrows():
+
+                    if row["Vai trò"] == "Quản trị hệ thống":
+                        is_active = True
+                    else:
+                        is_active = row["Kích hoạt"]
+
+                    update_user(    
+                        row["Tài khoản"],
+                        role_map[row["Vai trò"]],
+                        is_active
+                    )
+
+            st.success(
+                    "✅ Đã cập nhật tài khoản"
+                )
+
+            st.rerun()
 
         with tab2:
 
@@ -401,7 +466,8 @@ else:
     elif menu == "Chấm công":
         from attendance_log import (
             add_log,
-            get_today_logs
+            get_today_logs,
+            get_today_log_count
         )
 
         from employee import (
@@ -410,7 +476,10 @@ else:
 
         st.title("📍 Chấm công")
 
-        if st.session_state.user["role"] == "employee":
+        if st.session_state.user["role"] in [
+            "employee",
+            "manager"
+        ]:
 
             employee_code = st.session_state.user["employee_code"]
             from employee import get_employee
@@ -439,15 +508,40 @@ else:
         note = st.text_area(
             "📝 Ghi chú (không bắt buộc)"
         )
+        import requests
+        import platform
+        try:
+            ip_address = requests.get(
+                "https://api.ipify.org"
+            ).text
+        except:
+            ip_address = "Unknown"
+
+        device_info = platform.platform()
         if st.button(
             "📍 CHẤM CÔNG",
             use_container_width=True
         ):
 
-            add_log(
-                employee_code,
-                note
+            log_count = get_today_log_count(
+                employee_code
             )
+
+            if log_count >= 8:
+
+                st.error(
+                    "❌ Hôm nay đã đủ 8 lần chấm công"
+                )
+
+                st.stop()
+            add_log(
+                    employee_code,
+                    note,
+                    ip_address,
+                    device_info
+                )
+            st.info(f"🌐 IP: {ip_address}")
+            st.info(f"💻 Thiết bị: {device_info}")          
 
             st.toast("✅ Đã ghi nhận chấm công")
 
@@ -455,13 +549,26 @@ else:
         st.divider()
 
         logs = get_today_logs(employee_code)
+        log_count = get_today_log_count(
+            employee_code
+        )
 
+        st.info(
+            f"📍 Hôm nay đã chấm công {log_count}/8 lần"
+        )
         st.subheader(
             "Lịch sử hôm nay"
         )
 
+        from datetime import timedelta
+
         for i, log in enumerate(logs, start=1):
-            st.write(f"Lần {i}: {log[0]}")
+
+            display_time = log[0]
+
+            st.write(
+                f"Lần {i}: {display_time.strftime('%d/%m/%Y %H:%M:%S')}"
+            )
             
     elif menu == "Nhật ký chấm công":
 
@@ -514,27 +621,79 @@ else:
         from user_management import (
             create_user,
             get_users,
-            reset_password
+            reset_password,
+            get_user,
+            update_user
         )
         from employee import get_employees
         st.title("👤 Quản lý tài khoản")
 
-        tab1, tab2 = st.tabs(
+        tab1, tab2, tab3 = st.tabs(
             [
                 "📋 Danh sách",
-                "➕ Tạo tài khoản"
+                "➕ Tạo tài khoản",
+                "✏️ Sửa tài khoản"
             ]
         )
 
         with tab1:
-
             users_df = get_users()
 
-            st.dataframe(
-                users_df,
-                use_container_width=True
-            )
+            display_df = users_df.copy()
+            display_df["role"] = display_df["role"].replace({
+                "admin": "Quản trị hệ thống",
+                "manager": "Trưởng phòng",
+                "approver": "Người duyệt đơn",
+                "employee": "Nhân viên"
+            })
 
+            display_df.columns = [
+                "Tài khoản",
+                "Họ tên",
+                "Phòng ban",
+                "Vai trò",
+                "Mã NV",
+                "Kích hoạt"
+            ]
+
+            edited_df = st.data_editor(
+                display_df,
+                use_container_width=True,
+                hide_index=True,
+                disabled=[
+                    "Tài khoản",
+                    "Họ tên",
+                    "Phòng ban",
+                    "Mã NV"
+                ]
+            )
+            if st.button("💾 Lưu thay đổi",use_container_width=True):
+
+                role_map = {
+                    "Quản trị hệ thống": "admin",
+                    "Trưởng phòng": "manager",
+                    "Người duyệt đơn": "approver",
+                    "Nhân viên": "employee"
+                }
+
+                for _, row in edited_df.iterrows():
+
+                    if row["Vai trò"] == "Quản trị hệ thống":
+                        is_active = True
+                    else:
+                        is_active = row["Kích hoạt"]
+
+                    update_user(
+                        row["Tài khoản"],
+                        role_map[row["Vai trò"]],
+                        is_active
+                    )
+
+                st.success(
+                    "✅ Đã lưu thay đổi"
+                )
+
+                st.rerun()
             usernames = users_df["username"].tolist()
 
             selected_user = st.selectbox(
@@ -677,6 +836,72 @@ else:
                     )
 
                     st.rerun()
+        with tab3:
+
+            st.subheader(
+                "✏️ Sửa tài khoản"
+            )
+
+            users_df = get_users()
+
+            selected_user = st.selectbox(
+                "Chọn tài khoản",
+                users_df["username"].tolist()
+            )
+
+            user_data = get_user(
+                selected_user
+            )
+
+            role_reverse = {
+                "admin": "Quản trị hệ thống",
+                "manager": "Trưởng phòng",
+                "approver": "Người duyệt đơn",
+                "employee": "Nhân viên"
+            }
+
+            roles = [
+                "Quản trị hệ thống",
+                "Trưởng phòng",
+                "Người duyệt đơn",
+                "Nhân viên"
+            ]
+
+            role_display = st.selectbox(
+                "Vai trò",
+                roles,
+                index=roles.index(
+                    role_reverse[user_data["role"]]
+                )
+            )
+
+            is_active = st.checkbox(
+                "Kích hoạt",
+                value=user_data["is_active"]
+            )
+
+            if st.button(
+                "💾 Cập nhật tài khoản"
+            ):
+
+                role_map = {
+                    "Quản trị hệ thống": "admin",
+                    "Trưởng phòng": "manager",
+                    "Người duyệt đơn": "approver",
+                    "Nhân viên": "employee"
+                }
+
+                update_user(
+                    selected_user,
+                    role_map[role_display],
+                    is_active
+                )
+
+                st.success(
+                    "✅ Đã cập nhật tài khoản"
+                )
+
+                st.rerun()
     elif menu == "Đơn từ":
 
         tab1, tab2 = st.tabs(
@@ -916,17 +1141,17 @@ else:
             st.rerun()
             
     
-    elif menu == "Đơn từ":
-        from leave_request import (
-            create_leave_request
-        )
+    # elif menu == "Đơn từ":
+    #     from leave_request import (
+    #         create_leave_request
+    #     )
 
-        tab1, tab2 = st.tabs(
-            [
-                "📄 Nghỉ phép",
-                "🕒 Cập nhật công"
-            ]
-        )
+    #     tab1, tab2 = st.tabs(
+    #         [
+    #             "📄 Nghỉ phép",
+    #             "🕒 Cập nhật công"
+    #         ]
+    #     )
     elif menu == "Duyệt đơn":
 
         from leave_request import (
@@ -944,3 +1169,73 @@ else:
         )
 
         st.title("📋 Duyệt đơn")
+        
+    elif menu == "Đổi mật khẩu":
+
+        from user_management import change_password
+
+        st.subheader("🔑 Đổi mật khẩu")
+
+        old_password = st.text_input(
+            "Mật khẩu hiện tại",
+            type="password"
+        )
+
+        new_password = st.text_input(
+            "Mật khẩu mới",
+            type="password"
+        )
+
+        confirm_password = st.text_input(
+            "Nhập lại mật khẩu mới",
+            type="password"
+        )
+
+        if st.button(
+            "💾 Đổi mật khẩu",
+            use_container_width=True
+        ):
+
+            if not old_password:
+                st.error(
+                    "❌ Vui lòng nhập mật khẩu hiện tại"
+                )
+
+            elif not new_password:
+                st.error(
+                    "❌ Vui lòng nhập mật khẩu mới"
+                )
+
+            elif new_password != confirm_password:
+                st.error(
+                    "❌ Mật khẩu xác nhận không khớp"
+                )
+
+            elif len(new_password) < 6:
+                st.error(
+                    "❌ Mật khẩu phải từ 6 ký tự trở lên"
+                )
+
+            else:
+
+                success = change_password(
+                    st.session_state.user["username"],
+                    old_password,
+                    new_password
+                )
+
+                if success:
+
+                    st.success(
+                        "✅ Đổi mật khẩu thành công"
+                    )
+
+                    st.info(
+                        "Vui lòng đăng nhập lại"
+                    )
+
+                else:
+
+                    st.error(
+                        "❌ Mật khẩu hiện tại không đúng"
+                    )

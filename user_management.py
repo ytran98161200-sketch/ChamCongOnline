@@ -56,12 +56,16 @@ def get_users():
         result = conn.execute(
             text("""
             SELECT
-                username,
-                role,
-                employee_code,
-                is_active
-            FROM users
-            ORDER BY username
+                u.username,
+                e.fullname,
+                e.department,
+                u.role,
+                u.employee_code,
+                u.is_active
+            FROM users u
+            LEFT JOIN employees e
+                ON u.employee_code = e.employee_code
+            ORDER BY u.username
             """)
         )
 
@@ -71,11 +75,34 @@ def get_users():
         rows,
         columns=[
             "username",
+            "fullname",
+            "department",
             "role",
             "employee_code",
             "is_active"
         ]
     )
+def get_user(username):
+
+    with engine.connect() as conn:
+
+        result = conn.execute(
+            text("""
+            SELECT *
+            FROM users
+            WHERE username=:username
+            """),
+            {
+                "username": username
+            }
+        )
+
+        row = result.fetchone()
+
+    if row:
+        return dict(row._mapping)
+
+    return None
 def reset_password(
     username,
     new_password
@@ -103,3 +130,79 @@ def reset_password(
         )
 
         conn.commit()
+        
+def update_user(
+    username,
+    role,
+    is_active
+):
+
+    with engine.connect() as conn:
+
+        conn.execute(
+            text("""
+            UPDATE users
+            SET
+                role=:role,
+                is_active=:is_active
+            WHERE username=:username
+            """),
+            {
+                "username": username,
+                "role": role,
+                "is_active": is_active
+            }
+        )
+
+        conn.commit()
+
+def change_password(
+    username,
+    old_password,
+    new_password
+):
+
+    with engine.connect() as conn:
+
+        result = conn.execute(
+            text("""
+            SELECT password_hash
+            FROM users
+            WHERE username=:username
+            """),
+            {
+                "username": username
+            }
+        )
+
+        row = result.fetchone()
+
+        if not row:
+            return False
+
+        if not bcrypt.checkpw(
+            old_password.encode(),
+            row[0].encode()
+        ):
+            return False
+
+        password_hash = bcrypt.hashpw(
+            new_password.encode(),
+            bcrypt.gensalt()
+        ).decode()
+
+        conn.execute(
+            text("""
+            UPDATE users
+            SET password_hash=:password_hash
+            WHERE username=:username
+            """),
+            {
+                "username": username,
+                "password_hash": password_hash
+            }
+        )
+
+        conn.commit()
+
+        return True
