@@ -30,7 +30,7 @@ if st.session_state.user is None:
         )
 
         if user:
-
+            st.toast("✅ Đăng nhập thành công")
             st.session_state.user = user
 
             st.rerun()
@@ -60,15 +60,19 @@ else:
             [
                 "Dashboard",
                 "Nhân viên",
+                "Phòng ban",
+                "Chức vụ",
                 "Ca làm việc",
                 "Chấm công",
                 "Nhật ký chấm công",
+                "Đơn từ",
+                "Duyệt đơn",
                 "Tài khoản",
                 "Báo cáo"
             ]
         )
 
-    elif role == "hr":
+    elif role == "approver":
 
         menu = st.radio(
             "Chọn chức năng",
@@ -98,7 +102,8 @@ else:
         menu = st.radio(
             "Chọn chức năng",
             [
-                "Chấm công"
+                "Chấm công",
+                "Đơn từ"
             ]
         )
 
@@ -185,7 +190,7 @@ else:
 
         else:
 
-            st.success(
+            st.toast(
                 "Tất cả nhân viên đã chấm công"
             )
     elif menu == "Nhân viên":
@@ -232,28 +237,42 @@ else:
                 "Họ tên"
             )
 
-            department = st.text_input(
-                "Phòng ban"
+            from department import get_departments
+
+            department = st.selectbox(
+                "Phòng ban",
+                get_departments()
             )
 
-            position = st.text_input(
-                "Chức vụ"
+            from position import get_positions
+
+            position = st.selectbox(
+                "Chức vụ",
+                get_positions()
             )
 
         if st.button("💾 Lưu nhân viên"):
 
-            add_employee(
-                employee_code,
-                fullname,
-                department,
-                position
-            )
+            try:
 
-            st.success(
-                "Đã lưu nhân viên"
-            )
+                add_employee(
+                    employee_code,
+                    fullname,
+                    department,
+                    position
+                )
 
-            st.rerun()
+                st.success(
+                    f"✅ Đã tạo nhân viên {fullname}"
+                )
+
+                st.rerun()
+
+            except Exception:
+
+                st.error(
+                    f"❌ Mã nhân viên {employee_code} đã tồn tại"
+                )
 
         with tab3:
 
@@ -300,8 +319,8 @@ else:
                         shift_edit
                     )
 
-                    st.success(
-                        "Đã cập nhật"
+                    st.toast(
+                        "✅ Đã cập nhật"
                     )
 
                     st.rerun()
@@ -314,8 +333,8 @@ else:
                         employee_selected
                     )
 
-                    st.success(
-                        "Đã xóa"
+                    st.toast(
+                        "✅ Đã xóa"
                     )
 
                     st.rerun()
@@ -367,7 +386,7 @@ else:
                     early_allow
                 )
 
-                st.success("Đã lưu ca")
+                st.toast("✅ Đã lưu ca")
 
                 st.rerun()
 
@@ -394,10 +413,22 @@ else:
         if st.session_state.user["role"] == "employee":
 
             employee_code = st.session_state.user["employee_code"]
+            from employee import get_employee
 
-            st.info(
-                f"Nhân viên: {employee_code}"
+            emp = get_employee(
+                employee_code
             )
+            if emp:
+
+                st.info(
+                    f"👤 Nhân viên: {employee_code} - {emp['fullname']}"
+                )
+
+            else:
+
+                st.warning(
+                    f"👤 Nhân viên: {employee_code}"
+                )
 
         else:
 
@@ -418,9 +449,7 @@ else:
                 note
             )
 
-            st.success(
-                "Đã ghi nhận chấm công"
-            )
+            st.toast("✅ Đã ghi nhận chấm công")
 
             st.rerun()
         st.divider()
@@ -480,7 +509,438 @@ else:
             summary,
             use_container_width=True
         )
-    elif menu == "Báo cáo":
-        st.title(
-            "📑 Báo cáo"
+    elif menu == "Tài khoản":
+
+        from user_management import (
+            create_user,
+            get_users,
+            reset_password
         )
+        from employee import get_employees
+        st.title("👤 Quản lý tài khoản")
+
+        tab1, tab2 = st.tabs(
+            [
+                "📋 Danh sách",
+                "➕ Tạo tài khoản"
+            ]
+        )
+
+        with tab1:
+
+            users_df = get_users()
+
+            st.dataframe(
+                users_df,
+                use_container_width=True
+            )
+
+            usernames = users_df["username"].tolist()
+
+            selected_user = st.selectbox(
+                "Chọn tài khoản cần reset mật khẩu",
+                usernames
+            )
+
+            new_password = st.text_input(
+                "Mật khẩu mới",
+                type="password"
+            )
+
+            col1, col2 = st.columns(2)
+
+            with col1:
+
+                if st.button("🔑 Đổi mật khẩu"):
+
+                    reset_password(
+                        selected_user,
+                        new_password
+                    )
+
+                    st.success(
+                        f"Đã đặt lại mật khẩu cho {selected_user}"
+                    )
+
+            with col2:
+
+                if st.button("🔄 Reset về 123456"):
+
+                    reset_password(
+                        selected_user,
+                        "123456"
+                    )
+
+                    st.success(
+                        f"Đã đặt lại mật khẩu cho {selected_user}"
+                    )
+
+                    # reset_password(
+                    #     selected_user,
+                    #     new_password
+                    # )
+
+                    # st.success(
+                    #     f"Đã đặt lại mật khẩu cho {selected_user}"
+                    # )
+
+        with tab2:
+
+            username = st.text_input(
+                "Tên đăng nhập"
+            )
+
+            password = st.text_input(
+                "Mật khẩu",
+                type="password"
+            )
+
+            role_display = st.selectbox(
+                "Vai trò",
+                [
+                    "Admin",
+                    "Trưởng phòng",
+                    "Người duyệt đơn",
+                    "Nhân viên"
+                ]
+            )
+            managed_department = None
+            if role_display == "Trưởng phòng":
+
+                from department import get_departments
+
+                managed_department = st.selectbox(
+                    "Phòng ban phụ trách",
+                    get_departments()
+                )
+            role_map = {
+                "Admin": "admin",
+                "Trưởng phòng": "manager",
+                "Người duyệt đơn": "approver",
+                "Nhân viên": "employee"
+            }
+            # employee_code = st.text_input(
+            #     "Mã nhân viên"
+            # )
+            employees = get_employees()
+
+            employee_options = {}
+
+            for _, row in employees.iterrows():
+
+                display = f"{row['Mã NV']} - {row['Họ tên']}"
+
+                employee_options[display] = row['Mã NV']
+
+            if employee_options:
+
+                employee_selected = st.selectbox(
+                    "Nhân viên",
+                    list(employee_options.keys())
+                )
+
+                employee_code = employee_options[
+                    employee_selected
+                ]
+
+            else:
+
+                st.warning(
+                    "Chưa có nhân viên nào"
+                )
+
+                employee_code = ""
+            if st.button("Tạo tài khoản"):
+
+                try:
+
+                    create_user(
+                        username,
+                        password,
+                        role_map[role_display],
+                        employee_code,
+                        managed_department
+                    )
+
+                    st.success(
+                        f"✅ Đã tạo tài khoản {username}"
+                    )
+
+                    st.balloons()
+
+                    st.rerun()
+
+                except Exception as e:
+
+                    st.error(
+                        f"❌ Lỗi tạo tài khoản: {e}"
+                    )
+
+                    st.rerun()
+    elif menu == "Đơn từ":
+
+        tab1, tab2 = st.tabs(
+            [
+                "📄 Nghỉ phép",
+                "🕒 Cập nhật công"
+            ]
+        )
+
+        with tab1:
+
+            st.subheader(
+                "📄 Đăng ký nghỉ phép"
+            )
+
+            leave_type = st.selectbox(
+                "Loại nghỉ",
+                [
+                    "Nghỉ phép",
+                    # "Nghỉ bệnh",
+                    "Nghỉ không lương"
+                ]
+            )
+
+            col1, col2 = st.columns(2)
+
+            with col1:
+
+                start_date = st.date_input(
+                    "Từ ngày"
+                )
+
+                start_time = st.time_input(
+                    "Từ giờ"
+                )
+
+            with col2:
+
+                end_date = st.date_input(
+                    "Đến ngày"
+                )
+
+                end_time = st.time_input(
+                    "Đến giờ"
+                )
+            st.info(
+                f"Từ {start_date} {start_time} đến {end_date} {end_time}"
+            )
+            leave_session = st.selectbox(
+                "Hình thức nghỉ",
+                [
+                    "Cả ngày",
+                    "Nửa ngày sáng",
+                    "Nửa ngày chiều"
+                ]
+            )
+            reason = st.text_area(
+                "Lý do nghỉ"
+            )
+            from employee import get_employee
+            from approval import get_department_manager
+
+            emp = get_employee(
+                st.session_state.user["employee_code"]
+            )
+
+            department = emp["department"]
+
+            fullname = emp["fullname"]
+
+            manager = get_department_manager(
+                department
+            )
+
+            if manager:
+
+                st.info(
+                    f"👨‍💼 Người duyệt chính: {manager['fullname']}"
+                )
+
+            else:
+
+                st.warning(
+                    "Chưa cấu hình trưởng phòng"
+                )
+
+            st.info(
+                "👑 Người duyệt phụ: admin"
+            )
+            total_days = (
+                end_date - start_date
+            ).days + 1
+
+            st.info(
+                f"Số ngày nghỉ: {total_days}"
+            )
+
+            if st.button(
+                "📨 Gửi đơn nghỉ phép"
+            ):
+
+                create_leave_request(
+                    st.session_state.user["employee_code"],
+                    fullname,
+                    department,
+                    leave_type,
+                    start_date,
+                    end_date,
+                    total_days,
+                    reason, 
+                    manager["employee_code"]
+                )
+
+                st.success(
+                    "✅ Đã gửi đơn nghỉ phép"
+                )
+
+                st.balloons()
+
+                st.rerun()
+
+        with tab2:
+
+            st.subheader(
+                "🕒 Xin cập nhật công"
+            )
+
+            request_date = st.date_input(
+                "Ngày cần cập nhật"
+            )
+
+            check_in = st.time_input(
+                "Giờ vào"
+            )
+
+            check_out = st.time_input(
+                "Giờ ra"
+            )
+
+            reason2 = st.text_area(
+                "Lý do cập nhật công"
+            )
+
+            if st.button(
+                "📨 Gửi yêu cầu cập nhật công"
+            ):
+
+                st.success(
+                    "Đã gửi yêu cầu cập nhật công"
+                )
+    elif menu == "Báo cáo":
+        st.title("📑 Báo cáo")
+
+        from report import attendance_report
+
+        report_df = attendance_report()
+
+        st.dataframe(
+            report_df,
+            use_container_width=True
+        )
+        excel_data = report_df.to_csv(
+            index=False
+        ).encode("utf-8-sig")
+
+        st.download_button(
+            "📥 Xuất Excel",
+            excel_data,
+            file_name="bao_cao_cham_cong.csv",
+            mime="text/csv"
+        )
+    elif menu == "Phòng ban":
+
+        from department import (
+            get_departments,
+            add_department
+        )
+
+        st.title("🏢 Quản lý phòng ban")
+
+        st.write(
+            get_departments()
+        )
+
+        new_department = st.text_input(
+            "Tên phòng ban mới"
+        )
+
+        if st.button(
+            "➕ Thêm phòng ban"
+        ):
+
+            add_department(
+                new_department
+            )
+
+            st.success(
+                "Đã thêm phòng ban"
+            )
+
+            st.rerun()
+
+    elif menu == "Chức vụ":
+
+        from position import (
+            get_positions,
+            add_position
+        )
+
+        st.title("👔 Quản lý chức vụ")
+
+        positions = get_positions()
+
+        for p in positions:
+
+            st.write(
+                "•",
+                p
+            )
+
+        new_position = st.text_input(
+            "Tên chức vụ mới"
+        )
+
+        if st.button(
+            "➕ Thêm chức vụ"
+        ):
+
+            add_position(
+                new_position
+            )
+
+            st.success(
+                "Đã thêm chức vụ"
+            )
+
+            st.rerun()
+            
+    
+    elif menu == "Đơn từ":
+        from leave_request import (
+            create_leave_request
+        )
+
+        tab1, tab2 = st.tabs(
+            [
+                "📄 Nghỉ phép",
+                "🕒 Cập nhật công"
+            ]
+        )
+    elif menu == "Duyệt đơn":
+
+        from leave_request import (
+            get_pending_requests,
+            approve_leave,
+            reject_leave
+        )
+
+        user = st.session_state.user
+
+        requests = get_pending_requests(
+            user["username"],
+            user["role"],
+            user.get("managed_department")
+        )
+
+        st.title("📋 Duyệt đơn")
