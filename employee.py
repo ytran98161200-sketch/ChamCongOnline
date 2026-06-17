@@ -267,3 +267,31 @@ def get_not_attendance_employees():
         for row in rows
         if row[0] not in checked
     ]
+    
+def get_logs_by_date_for_employee(
+    selected_date,
+    employee_code
+):
+
+    with engine.connect() as conn:
+
+        result = conn.execute(
+            text("""
+            SELECT
+                scan_time,
+                note,
+                ip_address,
+                device_info
+            FROM attendance_logs
+            WHERE
+                employee_code=:employee_code
+                AND DATE(scan_time)=:selected_date
+            ORDER BY scan_time ASC
+            """),
+            {
+                "employee_code": employee_code,
+                "selected_date": selected_date
+            }
+        )
+
+        return result.fetchall()
