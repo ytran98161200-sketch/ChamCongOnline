@@ -926,8 +926,15 @@ else:
                 st.session_state.user["employee_code"]
             )
 
-            department = emp["department"]
+            if emp is None:
 
+                st.error(
+                    "❌ Không tìm thấy thông tin nhân viên"
+                )
+
+                st.stop()
+
+            department = emp["department"]
             fullname = emp["fullname"]
 
             manager = get_department_manager(

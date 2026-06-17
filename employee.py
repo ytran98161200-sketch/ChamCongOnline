@@ -175,7 +175,11 @@ def get_employee(employee_code):
 
         result = conn.execute(
             text("""
-            SELECT *
+            SELECT
+                employee_code,
+                fullname,
+                department,
+                position
             FROM employees
             WHERE employee_code=:employee_code
             """),
@@ -186,10 +190,15 @@ def get_employee(employee_code):
 
         row = result.fetchone()
 
-    if row:
-        return dict(row._mapping)
+    if not row:
+        return None
 
-    return None
+    return {
+        "employee_code": row[0],
+        "fullname": row[1],
+        "department": row[2],
+        "position": row[3]
+    }
 
 def get_employee_count():
 
