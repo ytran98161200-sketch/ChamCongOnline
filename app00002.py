@@ -228,9 +228,9 @@ else:
             )
             employees = get_employees()
 
-            search = st.text_input(
-                "🔍 Tìm kiếm nhân viên"
-            )
+            # search = st.text_input(
+            #     "🔍 Tìm kiếm nhân viên"
+            # )
 
             if search:
 
@@ -299,7 +299,8 @@ else:
             )
 
             fullname = st.text_input(
-                "Họ tên"
+                "Họ tên",
+                key="add_employee_name"
             )
 
             from department import get_departments
@@ -352,17 +353,20 @@ else:
 
             fullname_edit = st.text_input(
                 "Họ tên",
-                value=employee_data["fullname"]
+                value=employee_data["fullname"],
+                key="edit_employee_name"
             )
 
             department_edit = st.text_input(
                 "Phòng ban",
-                value=employee_data["department"]
+                value=employee_data["department"],
+                key="edit_employee_department"
             )
 
             position_edit = st.text_input(
                 "Chức vụ",
-                value=employee_data["position"]
+                value=employee_data["position"],
+                key="edit_employee_position"
             )
 
             shift_edit = st.selectbox(
