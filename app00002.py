@@ -1,4 +1,5 @@
 import streamlit as st
+from attendance_log import get_logs_by_date_for_employee
 from auth import login
 
 st.set_page_config(
@@ -506,7 +507,17 @@ else:
             st.rerun()
         st.divider()
 
-        logs = get_today_logs(employee_code)
+        from datetime import date
+
+        selected_date = st.date_input(
+            "📅 Chọn ngày xem lịch sử",
+            value=date.today()
+        )
+
+        logs = get_logs_by_date_for_employee(
+            selected_date,
+            employee_code
+        )
         log_count = get_today_log_count(
             employee_code
         )

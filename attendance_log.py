@@ -58,6 +58,7 @@ def get_today_logs(employee_code):
                 device_info
             FROM attendance_logs
             WHERE employee_code=:employee_code
+            AND DATE(scan_time)=CURRENT_DATE
             ORDER BY scan_time ASC
             """),
             {
