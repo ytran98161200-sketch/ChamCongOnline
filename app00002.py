@@ -227,11 +227,6 @@ else:
                 "🔍 Tìm kiếm nhân viên"
             )
             employees = get_employees()
-
-            # search = st.text_input(
-            #     "🔍 Tìm kiếm nhân viên"
-            # )
-
             if search:
 
                 employees = employees[
@@ -249,48 +244,7 @@ else:
             st.dataframe(
                 employees,
                 use_container_width=True
-)
-            # display_df = employees.copy()
-            # edited_df = st.data_editor(
-            #     display_df,
-            #     use_container_width=True,
-            #     disabled=[
-            #         "Tài khoản",
-            #         "Họ tên",
-            #         "Phòng ban",
-            #         "Mã NV"
-            #     ]
-            # )
-            # if st.button(
-            #     "💾 Lưu thay đổi",
-            #     use_container_width=True
-            # ):
-
-            role_map = {
-                    "Quản trị hệ thống": "admin",
-                    "Trưởng phòng": "manager",
-                    "Người duyệt đơn": "approver",
-                    "Nhân viên": "employee"
-                }
-
-            for _, row in edited_df.iterrows():
-
-                    if row["Vai trò"] == "Quản trị hệ thống":
-                        is_active = True
-                    else:
-                        is_active = row["Kích hoạt"]
-
-                    update_user(    
-                        row["Tài khoản"],
-                        role_map[row["Vai trò"]],
-                        is_active
-                    )
-
-            st.success(
-                    "✅ Đã cập nhật tài khoản"
-                )
-
-            st.rerun()
+            )
 
         with tab2:
 
@@ -317,28 +271,28 @@ else:
                 get_positions()
             )
 
-        if st.button("💾 Lưu nhân viên"):
+            if st.button("💾 Lưu nhân viên"):
 
-            try:
+                try:
 
-                add_employee(
-                    employee_code,
-                    fullname,
-                    department,
-                    position
-                )
+                    add_employee(
+                        employee_code,
+                        fullname,
+                        department,
+                        position
+                    )
 
-                st.success(
-                    f"✅ Đã tạo nhân viên {fullname}"
-                )
+                    st.success(
+                        f"✅ Đã tạo nhân viên {fullname}"
+                    )
 
-                st.rerun()
+                    st.rerun()
 
-            except Exception:
+                except Exception:
 
-                st.error(
-                    f"❌ Mã nhân viên {employee_code} đã tồn tại"
-                )
+                    st.error(
+                        f"❌ Mã nhân viên {employee_code} đã tồn tại"
+                    )
 
         with tab3:
 
