@@ -1,6 +1,8 @@
 import streamlit as st
 from attendance_log import get_logs_by_date_for_employee
 from auth import login
+from employee import get_user_profile
+from employee import update_user_profile
 
 st.set_page_config(
     page_title="Hệ thống chấm công V2",
@@ -50,6 +52,15 @@ else:
 
         st.success(
             f"👤 {st.session_state.user['username']}"
+    )
+
+        acc_menu = st.selectbox(
+            "Tài khoản",
+            [
+                "Thông tin cá nhân",
+                "Đổi mật khẩu",
+                "Đăng xuất"
+            ]
         )
 
         role = st.session_state.user["role"]
@@ -1215,3 +1226,40 @@ else:
                     st.error(
                         "❌ Mật khẩu hiện tại không đúng"
                     )
+    if acc_menu == "Thông tin cá nhân":
+
+        st.title("👤 Hồ sơ cá nhân")
+
+        profile = get_user_profile(
+            st.session_state.user["username"]
+        )
+
+        fullname = st.text_input(
+            "Họ tên",
+            value=profile["fullname"] if profile["fullname"] else ""
+        )
+
+        email = st.text_input(
+            "Email",
+            value=profile["email"] if profile["email"] else ""
+        )
+
+        phone = st.text_input(
+            "Số điện thoại",
+            value=profile["phone"] if profile["phone"] else ""
+        )
+
+        if st.button("💾 Lưu thông tin"):
+
+            update_user_profile(
+                st.session_state.user["username"],
+                fullname,
+                email,
+                phone
+            )
+
+            st.success(
+                "✅ Đã cập nhật thông tin"
+            )
+
+            st.rerun()

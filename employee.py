@@ -268,3 +268,46 @@ def get_not_attendance_employees():
         if row[0] not in checked
     ]
     
+from database import engine
+from sqlalchemy import text
+
+def get_user_profile(username):
+
+    with engine.connect() as conn:
+
+        user = conn.execute(
+            text("""
+            SELECT *
+            FROM users
+            WHERE username=:username
+            """),
+            {"username": username}
+        ).mappings().first()
+
+    return user
+
+def update_user_profile(
+    username,
+    fullname,
+    email,
+    phone
+):
+
+    with engine.begin() as conn:
+
+        conn.execute(
+            text("""
+                UPDATE users
+                SET
+                    fullname = :fullname,
+                    email = :email,
+                    phone = :phone
+                WHERE username = :username
+            """),
+            {
+                "fullname": fullname,
+                "email": email,
+                "phone": phone,
+                "username": username
+            }
+        )

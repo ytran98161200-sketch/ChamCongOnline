@@ -24,6 +24,21 @@ def login(username,password):
         password.encode(),
         user.password_hash.encode()
     ):
+        from datetime import datetime
+
+        with engine.begin() as conn:
+
+            conn.execute(
+                text("""
+                UPDATE users
+                SET last_login=:last_login
+                WHERE username=:username
+                """),
+                {
+                    "last_login": datetime.now(),
+                    "username": username
+                }
+            )
         return dict(user._mapping)
 
     return None
