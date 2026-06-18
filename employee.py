@@ -281,7 +281,9 @@ def get_user_profile(username):
             FROM users
             WHERE username=:username
             """),
-            {"username": username}
+            {
+                "username": username
+            }
         ).mappings().first()
 
     return user

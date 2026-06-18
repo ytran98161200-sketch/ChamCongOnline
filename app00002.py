@@ -1,17 +1,67 @@
+
 import streamlit as st
+from datetime import datetime
 from attendance_log import get_logs_by_date_for_employee
 from auth import login
-from employee import get_user_profile
-from employee import update_user_profile
+from employee import (
+    get_user_profile,
+    update_user_profile
+)
 
 st.set_page_config(
     page_title="Hệ thống chấm công V2",
     layout="wide"
 )
+st.markdown("""
+<style>
 
+.metric-card {
+    padding:20px;
+    border-radius:15px;
+    color:white;
+    text-align:center;
+    font-weight:bold;
+    margin-bottom:15px;
+}
+
+.blue {
+    background: linear-gradient(
+        135deg,
+        #2196F3,
+        #42A5F5
+    );
+}
+
+.green {
+    background: linear-gradient(
+        135deg,
+        #4CAF50,
+        #66BB6A
+    );
+}
+
+.orange {
+    background: linear-gradient(
+        135deg,
+        #FF9800,
+        #FFB74D
+    );
+}
+
+.red {
+    background: linear-gradient(
+        135deg,
+        #F44336,
+        #EF5350
+    );
+}
+
+</style>
+""", unsafe_allow_html=True)
 if "user" not in st.session_state:
     st.session_state.user = None
-
+if "page" not in st.session_state:
+    st.session_state.page = "dashboard"
 if st.session_state.user is None:
 
     st.title("🕒 HỆ THỐNG CHẤM CÔNG V2")
@@ -52,85 +102,211 @@ else:
 
         st.success(
             f"👤 {st.session_state.user['username']}"
-    )
-
-        acc_menu = st.selectbox(
-            "Tài khoản",
-            [
-                "Thông tin cá nhân",
-                "Đổi mật khẩu",
-                "Đăng xuất"
-            ]
         )
 
         role = st.session_state.user["role"]
+        st.write("ROLE:", role)
+        if role == "admin":
 
-    if role == "admin":
+            menu = st.selectbox(
+                "📋 Chức năng",
+                [
+                    "📊 Dashboard",
+                    "👨‍💼 Nhân viên",
+                    "🏢 Phòng ban",
+                    "👔 Chức vụ",
+                    "🕒 Ca làm việc",
+                    "📍 Chấm công",
+                    "📋 Nhật ký chấm công",
+                    "📝 Đơn từ",
+                    "✅ Duyệt đơn",
+                    "👤 Tài khoản",
+                    "📑 Báo cáo",
+                    "🔑 Đổi mật khẩu",
+                    "📅 Ngày lễ"
+                ]
+            )
+        elif role == "approver":
 
-        menu = st.radio(
-            "Chọn chức năng",
-            [
-                "Dashboard",
-                "Nhân viên",
-                "Phòng ban",
-                "Chức vụ",
-                "Ca làm việc",
-                "Chấm công",
-                "Nhật ký chấm công",
-                "Đơn từ",
-                "Duyệt đơn",
-                "Tài khoản",
-                "Báo cáo",
-                "Đổi mật khẩu"
-            ]
+            menu = st.selectbox(
+                "📋 Chức năng",
+                [
+                    "📊 Dashboard",
+                    "👨‍💼 Nhân viên",
+                    "🕒 Ca làm việc",
+                    "📍 Chấm công",
+                    "📋 Nhật ký chấm công",
+                    "📑 Báo cáo",
+                    "🔑 Đổi mật khẩu"
+                ]
+            )
+
+        elif role == "manager":
+
+            menu = st.selectbox(
+                "📋 Chức năng",
+                [
+                    "📊 Dashboard",
+                    "📋 Nhật ký chấm công",
+                    "✅ Duyệt đơn",
+                    "📍 Chấm công",
+                    "🔑 Đổi mật khẩu"
+                ]
+            )
+
+        else:
+
+            menu = st.selectbox(
+                "📋 Chức năng",
+                [
+                    "📍 Chấm công",
+                    "📝 Đơn từ",
+                    "🔑 Đổi mật khẩu"
+                ]
+            )
+    from datetime import datetime
+
+    header1, header2, header3 = st.columns([8,2,2])
+
+    with header1:
+        st.title("🕒 Hệ thống chấm công")
+
+    with header2:
+        st.success("🟢 Online")
+        st.caption(
+            datetime.now().strftime("%d/%m/%Y")
         )
 
-    elif role == "approver":
+    with header3:
 
-        menu = st.radio(
-            "Chọn chức năng",
-            [
-                "Dashboard",
-                "Nhân viên",
-                "Ca làm việc",
-                "Chấm công",
-                "Nhật ký chấm công",
-                "Báo cáo",
-                "Đổi mật khẩu"
-            ]
+        username = "Guest"
+
+        if st.session_state.user:
+            username = st.session_state.user["username"]
+
+        with st.popover(f"👤 {username}"):
+
+            if st.button("Thông tin cá nhân"):
+
+                st.session_state.page = "profile"
+
+                st.rerun()
+
+            if st.button("Đăng xuất"):
+
+                st.session_state.user = None
+
+                st.rerun()
+        
+    if st.session_state.user is None:
+        st.stop()
+    # role = st.session_state.user["role"]
+    # if role == "admin":
+
+    #     menu = st.selectbox(
+    #         "📋 Chức năng",
+    #         [
+    #             "📊 Dashboard",
+    #             "👨‍💼 Nhân viên",
+    #             "🏢 Phòng ban",
+    #             "👔 Chức vụ",
+    #             "🕒 Ca làm việc",
+    #             "📍 Chấm công",
+    #             "📋 Nhật ký chấm công",
+    #             "📝 Đơn từ",
+    #             "✅ Duyệt đơn",
+    #             "👤 Tài khoản",
+    #             "📑 Báo cáo",
+    #             "🔑 Đổi mật khẩu",
+    #             "📅 Ngày lễ"
+    #         ]
+    #     )
+
+    # elif role == "approver":
+
+    #     menu = st.radio(
+    #         "Chọn chức năng",
+    #         [
+    #             "Dashboard",
+    #             "Nhân viên",
+    #             "Ca làm việc",
+    #             "Chấm công",
+    #             "Nhật ký chấm công",
+    #             "Báo cáo",
+    #             "Đổi mật khẩu"
+    #         ]
+    #     )
+        
+    # elif role == "manager":
+
+    #     menu = st.radio(
+    #         "Chọn chức năng",
+    #         [
+    #             "Dashboard",
+    #             "Nhật ký chấm công",
+    #             "Duyệt phép",
+    #             "Chấm công",
+    #             "Đổi mật khẩu"
+    #         ]
+    #     )
+
+    # else:
+
+    #     menu = st.radio(
+    #         "Chọn chức năng",
+    #         [
+    #             "Chấm công",
+    #             "Đơn từ",
+    #             "Đổi mật khẩu"
+    #         ]
+    #     )
+        
+    if st.session_state.page == "profile":
+        st.title("👤 Hồ sơ cá nhân")
+
+        col1, col2 = st.columns([3,1])
+
+        with col2:
+            if st.button("⬅ Dashboard"):
+                st.session_state.page = "dashboard"
+                st.rerun()
+
+        profile = get_user_profile(
+            st.session_state.user["username"]
         )
 
-    elif role == "manager":
+        if profile:
 
-        menu = st.radio(
-            "Chọn chức năng",
-            [
-                "Dashboard",
-                "Nhật ký chấm công",
-                "Duyệt phép",
-                "Chấm công",
-                "Đổi mật khẩu"
-            ]
-        )
+            fullname = st.text_input(
+                "Họ tên",
+                value=profile.get("fullname", "") or ""
+            )
 
-    else:
+            email = st.text_input(
+                "Email",
+                value=profile.get("email", "") or ""
+            )
 
-        menu = st.radio(
-            "Chọn chức năng",
-            [
-                "Chấm công",
-                "Đơn từ",
-                "Đổi mật khẩu"
-            ]
-        )
+            phone = st.text_input(
+                "Số điện thoại",
+                value=profile.get("phone", "") or ""
+            )
 
-    if st.button("🚪 Đăng xuất",use_container_width=True):
+            if st.button("💾 Lưu thông tin"):
 
-            st.session_state.user = None
+                update_user_profile(
+                    st.session_state.user["username"],
+                    fullname,
+                    email,
+                    phone
+                )
 
-            st.rerun()
+                st.success("✅ Đã cập nhật")
 
-    if menu == "Dashboard":
+                st.rerun()
+
+        st.stop()
+    if menu == "📊 Dashboard":
 
         from employee import (
             get_employee_count,
@@ -148,41 +324,75 @@ else:
         )
 
         st.title("📊 Dashboard")
+        st.markdown("""
+        <style>
 
-        col1, col2, col3, col4 = st.columns(4)
+        .dashboard-card{
+            border-radius:15px;
+            padding:20px;
+            color:white;
+            text-align:center;
+            font-weight:bold;
+        }
 
+        .blue{
+            background:#2196F3;
+        }
+
+        .green{
+            background:#4CAF50;
+        }
+
+        .orange{
+            background:#FF9800;
+        }
+
+        .red{
+            background:#F44336;
+        }
+
+        </style>
+        """, unsafe_allow_html=True)
+        col1,col2,col3,col4 = st.columns(4)
         with col1:
 
-            st.metric(
-                "👨‍💼 Tổng nhân viên",
-                get_employee_count()
-            )
+            st.markdown(f"""
+            <div class="dashboard-card blue">
+                👨‍💼<br>
+                Tổng nhân viên
+                <h1>{get_employee_count()}</h1>
+            </div>
+            """, unsafe_allow_html=True)
 
         with col2:
 
-            st.metric(
-                "🕒 Tổng ca làm việc",
-                get_shift_count()
-            )
+            st.markdown(f"""
+            <div class="dashboard-card green">
+                ✅<br>
+                Đã chấm công
+                <h1>{get_today_attendance_count()}</h1>
+            </div>
+            """, unsafe_allow_html=True)
 
-        # with col3:
-
-        #     st.metric(
-        #         "✅ Đang làm",
-        #         get_active_employee_count()
-        #     )
         with col3:
 
-            st.metric(
-                "📍 Đã chấm công",
-                get_today_attendance_count()
-            )
+            st.markdown(f"""
+            <div class="dashboard-card orange">
+                🕒<br>
+                Ca làm việc
+                <h1>{get_shift_count()}</h1>
+            </div>
+            """, unsafe_allow_html=True)
+
         with col4:
 
-            st.metric(
-                "❌ Chưa chấm công",
-                get_not_attendance_count()
-            )
+            st.markdown(f"""
+            <div class="dashboard-card red">
+                ❌<br>
+                Chưa chấm công
+                <h1>{get_not_attendance_count()}</h1>
+            </div>
+            """, unsafe_allow_html=True)
         st.divider()
 
         st.metric(
@@ -210,7 +420,7 @@ else:
             st.toast(
                 "Tất cả nhân viên đã chấm công"
             )
-    elif menu == "Nhân viên":
+    elif menu == "👨‍💼 Nhân viên":
 
         from employee import (
             add_employee,
@@ -373,7 +583,7 @@ else:
                     )
 
                     st.rerun()
-    elif menu == "Ca làm việc":
+    elif menu == "🕒 Ca làm việc":
 
         from shift import (
             add_shift,
@@ -433,7 +643,7 @@ else:
                 get_shifts(),
                 use_container_width=True
             )
-    elif menu == "Chấm công":
+    elif menu == "📍 Chấm công":
         from attendance_log import (
             add_log,
             get_today_logs,
@@ -445,97 +655,152 @@ else:
         )
 
         st.title("📍 Chấm công")
+        left_col, right_col = st.columns([1,3])
+        with left_col:
+            if st.session_state.user["role"] in [
+                "employee",
+                "manager"
+            ]:
 
-        if st.session_state.user["role"] in [
-            "employee",
-            "manager"
-        ]:
+                employee_code = st.session_state.user["employee_code"]
+                from employee import get_employee
 
-            employee_code = st.session_state.user["employee_code"]
-            from employee import get_employee
-
-            emp = get_employee(
-                employee_code
-            )
-            if emp:
-
-                st.info(
-                    f"👤 Nhân viên: {employee_code} - {emp['fullname']}"
+                emp = get_employee(
+                    employee_code
                 )
+                if emp:
+
+                    st.info(
+                        f"👤 Nhân viên: {employee_code} +-- {emp['fullname']}"
+                    )
+
+                else:
+
+                    st.warning(
+                        f"👤 Nhân viên: {employee_code}"
+                    )
 
             else:
 
-                st.warning(
-                    f"👤 Nhân viên: {employee_code}"
+                employee_code = st.selectbox(
+                    "Nhân viên",
+                    get_employee_codes()
+                )
+            note = st.text_area(
+                "📝 Ghi chú (không bắt buộc)",
+                height=80
+            )
+            import requests
+            import platform
+            try:
+                ip_address = requests.get(
+                    "https://api.ipify.org"
+                ).text
+            except:
+                ip_address = "Unknown"
+
+            device_info = platform.platform()
+            # if st.session_state.user["role"] == "admin":
+                # st.info(f"🌐 IP: {ip_address}")
+                # st.info(f"💻 Thiết bị: {device_info}")    
+            if st.button(
+                "📍 CHẤM CÔNG",
+                use_container_width=True
+            ):
+
+                log_count = get_today_log_count(
+                    employee_code
                 )
 
-        else:
+                if log_count >= 8:
 
-            employee_code = st.selectbox(
-                "Nhân viên",
-                get_employee_codes()
+                    st.error(
+                        "❌ Hôm nay đã đủ 8 lần chấm công"
+                    )
+
+                    st.stop()
+                add_log(
+                        employee_code,
+                        note,
+                        ip_address,
+                        device_info
+                    )
+
+                st.toast("✅ Đã ghi nhận chấm công")
+
+                st.rerun()
+            st.divider()
+
+            from datetime import date
+
+            selected_date = st.date_input(
+                "📅 Chọn ngày xem lịch sử",
+                value=date.today()
             )
-        note = st.text_area(
-            "📝 Ghi chú (không bắt buộc)"
-        )
-        import requests
-        import platform
-        try:
-            ip_address = requests.get(
-                "https://api.ipify.org"
-            ).text
-        except:
-            ip_address = "Unknown"
 
-        device_info = platform.platform()
-        if st.button(
-            "📍 CHẤM CÔNG",
-            use_container_width=True
-        ):
-
+            logs = get_logs_by_date_for_employee(
+                selected_date,
+                employee_code
+            )
             log_count = get_today_log_count(
                 employee_code
             )
 
-            if log_count >= 8:
+            st.info(
+                f"📍 Hôm nay đã chấm công {log_count}/8 lần"
+            )
+        import calendar
+        from holiday import get_holiday_dict
+        from datetime import datetime
 
-                st.error(
-                    "❌ Hôm nay đã đủ 8 lần chấm công"
-                )
-
-                st.stop()
-            add_log(
-                    employee_code,
-                    note,
-                    ip_address,
-                    device_info
-                )
-            st.info(f"🌐 IP: {ip_address}")
-            st.info(f"💻 Thiết bị: {device_info}")          
-
-            st.toast("✅ Đã ghi nhận chấm công")
-
-            st.rerun()
         st.divider()
+        with right_col:
+            st.subheader("📅 Lịch chấm công tháng")
+            month = st.selectbox(
+                "Tháng",
+                list(range(1,13)),
+                index=datetime.now().month - 1
+            )
 
-        from datetime import date
+            year = st.number_input(
+                "Năm",
+                value=datetime.now().year,
+                step=1
+            )
+            import calendar
+            cal = calendar.monthcalendar(
+                int(year),
+                int(month)
+            )
+            week_header = st.columns(7)
 
-        selected_date = st.date_input(
-            "📅 Chọn ngày xem lịch sử",
-            value=date.today()
-        )
+            days_name = [
+                "T2","T3","T4",
+                "T5","T6","T7","CN"
+            ]
 
-        logs = get_logs_by_date_for_employee(
-            selected_date,
-            employee_code
-        )
-        log_count = get_today_log_count(
-            employee_code
-        )
+            for i,name in enumerate(days_name):
+                week_header[i].markdown(
+                    f"**{name}**"
+                )
 
-        st.info(
-            f"📍 Hôm nay đã chấm công {log_count}/8 lần"
-        )
+            for week in cal:
+
+                cols = st.columns(7)
+
+                for i, day in enumerate(week):
+
+                    if day == 0:
+
+                        cols[i].write("")
+
+                    else:
+
+                        cols[i].button(
+                            str(day),
+                            key=f"day_{year}_{month}_{day}",
+                            use_container_width=True
+                        )
         st.subheader(
             "Lịch sử hôm nay"
         )
@@ -550,7 +815,7 @@ else:
                 f"Lần {i}: {display_time.strftime('%d/%m/%Y %H:%M:%S')}"
             )
             
-    elif menu == "Nhật ký chấm công":
+    elif menu == "📋 Nhật ký chấm công":
 
         from attendance_log import (
             get_logs_by_date,
@@ -596,7 +861,7 @@ else:
             summary,
             use_container_width=True
         )
-    elif menu == "Tài khoản":
+    elif menu == "👤 Tài khoản":
 
         from user_management import (
             create_user,
@@ -714,14 +979,6 @@ else:
                         f"Đã đặt lại mật khẩu cho {selected_user}"
                     )
 
-                    # reset_password(
-                    #     selected_user,
-                    #     new_password
-                    # )
-
-                    # st.success(
-                    #     f"Đã đặt lại mật khẩu cho {selected_user}"
-                    # )
 
         with tab2:
 
@@ -758,9 +1015,7 @@ else:
                 "Người duyệt đơn": "approver",
                 "Nhân viên": "employee"
             }
-            # employee_code = st.text_input(
-            #     "Mã nhân viên"
-            # )
+
             employees = get_employees()
 
             employee_options = {}
@@ -882,7 +1137,7 @@ else:
                 )
 
                 st.rerun()
-    elif menu == "Đơn từ":
+    elif menu == "📝 Đơn từ":
 
         tab1, tab2 = st.tabs(
             [
@@ -1039,7 +1294,7 @@ else:
                 st.success(
                     "Đã gửi yêu cầu cập nhật công"
                 )
-    elif menu == "Báo cáo":
+    elif menu == "📑 Báo cáo":
         st.title("📑 Báo cáo")
 
         from report import attendance_report
@@ -1060,7 +1315,44 @@ else:
             file_name="bao_cao_cham_cong.csv",
             mime="text/csv"
         )
-    elif menu == "Phòng ban":
+    
+    elif menu == "📅 Ngày lễ":
+
+        from holiday import (
+            add_holiday,
+            get_holidays
+        )
+
+        st.title("📅 Quản lý ngày lễ")
+
+        holiday_date = st.date_input(
+            "Ngày lễ"
+        )
+
+        holiday_name = st.text_input(
+            "Tên ngày lễ"
+        )
+
+        if st.button("💾 Lưu ngày lễ"):
+
+            add_holiday(
+                holiday_date,
+                holiday_name
+            )
+
+            st.success(
+                "Đã lưu ngày lễ"
+            )
+
+            st.rerun()
+
+        st.divider()
+
+        st.dataframe(
+            get_holidays(),
+            use_container_width=True
+        )
+    elif menu == "🏢 Phòng ban":
 
         from department import (
             get_departments,
@@ -1091,7 +1383,7 @@ else:
 
             st.rerun()
 
-    elif menu == "Chức vụ":
+    elif menu == "👔 Chức vụ":
 
         from position import (
             get_positions,
@@ -1128,18 +1420,8 @@ else:
             st.rerun()
             
     
-    # elif menu == "Đơn từ":
-    #     from leave_request import (
-    #         create_leave_request
-    #     )
 
-    #     tab1, tab2 = st.tabs(
-    #         [
-    #             "📄 Nghỉ phép",
-    #             "🕒 Cập nhật công"
-    #         ]
-    #     )
-    elif menu == "Duyệt đơn":
+    elif menu == "✅ Duyệt đơn":
 
         from leave_request import (
             get_pending_requests,
@@ -1157,7 +1439,7 @@ else:
 
         st.title("📋 Duyệt đơn")
         
-    elif menu == "Đổi mật khẩu":
+    elif menu == "🔑 Đổi mật khẩu":
 
         from user_management import change_password
 
@@ -1226,40 +1508,3 @@ else:
                     st.error(
                         "❌ Mật khẩu hiện tại không đúng"
                     )
-    if acc_menu == "Thông tin cá nhân":
-
-        st.title("👤 Hồ sơ cá nhân")
-
-        profile = get_user_profile(
-            st.session_state.user["username"]
-        )
-
-        fullname = st.text_input(
-            "Họ tên",
-            value=profile["fullname"] if profile["fullname"] else ""
-        )
-
-        email = st.text_input(
-            "Email",
-            value=profile["email"] if profile["email"] else ""
-        )
-
-        phone = st.text_input(
-            "Số điện thoại",
-            value=profile["phone"] if profile["phone"] else ""
-        )
-
-        if st.button("💾 Lưu thông tin"):
-
-            update_user_profile(
-                st.session_state.user["username"],
-                fullname,
-                email,
-                phone
-            )
-
-            st.success(
-                "✅ Đã cập nhật thông tin"
-            )
-
-            st.rerun()
