@@ -16,7 +16,8 @@ def create_leave_request(
     main_approver = get_department_manager(
         department
     )
-
+    if isinstance(main_approver, dict):
+        main_approver = main_approver["employee_code"]
     backup_approver = "admin"
     with engine.connect() as conn:
 
@@ -92,7 +93,8 @@ def approve_leave(
             SET
                 status='Đã duyệt',
                 approver=:approver,
-                approved_at=NOW()
+                approved_at=NOW(),
+                employee_notified=FALSE
             WHERE id=:id
             """),
             {
@@ -160,13 +162,122 @@ def reject_leave(
                 status='Từ chối',
                 approver=:approver,
                 approve_note=:note,
-                approved_at=NOW()
+                approved_at=NOW(),
+                employee_notified=FALSE
             WHERE id=:id
             """),
             {
                 "id": request_id,
                 "approver": approver,
                 "note": note
+            }
+        )
+
+        conn.commit()
+
+def get_pending_leave_count():
+
+    with engine.connect() as conn:
+
+        result = conn.execute(
+            text("""
+                SELECT COUNT(*)
+                FROM leave_requests
+                WHERE status='Chờ duyệt'
+            """)
+        )
+
+        return result.scalar() or 0
+
+def get_approved_leave_dates():
+
+    with engine.connect() as conn:
+
+        result = conn.execute(
+            text("""
+                SELECT
+                    employee_code,
+                    start_date,
+                    end_date,
+                    leave_type
+                FROM leave_requests
+                WHERE status='Đã duyệt'
+            """)
+        )
+
+        return result.fetchall()
+    
+def is_leave_day(
+    employee_code,
+    work_date
+):
+
+    with engine.connect() as conn:
+
+        result = conn.execute(
+            text("""
+                SELECT COUNT(*)
+                FROM leave_requests
+                WHERE
+                    employee_code=:employee_code
+                    AND status='Đã duyệt'
+                    AND :work_date
+                        BETWEEN start_date
+                        AND end_date
+            """),
+            {
+                "employee_code": employee_code,
+                "work_date": work_date
+            }
+        )
+
+        return result.scalar() > 0
+
+def get_leave_notifications(
+    employee_code
+):
+
+    with engine.connect() as conn:
+
+        result = conn.execute(
+            text("""
+                SELECT
+                    id,
+                    status,
+                    leave_type,
+                    start_date,
+                    end_date
+                FROM leave_requests
+                WHERE
+                    LOWER(employee_code)
+                    =
+                    LOWER(:employee_code)
+                    AND employee_notified=FALSE
+                    AND status IN (
+                        'Đã duyệt',
+                        'Từ chối'
+                    )
+            """),
+            {
+                "employee_code": employee_code
+            }
+        )
+
+        return result.mappings().all()
+def mark_notification_read(
+    request_id
+):
+
+    with engine.connect() as conn:
+
+        conn.execute(
+            text("""
+                UPDATE leave_requests
+                SET employee_notified=TRUE
+                WHERE id=:id
+            """),
+            {
+                "id": request_id
             }
         )
 

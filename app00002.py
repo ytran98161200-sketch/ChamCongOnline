@@ -1,6 +1,19 @@
 
 import streamlit as st
+import pandas as pd
+from io import BytesIO
 from datetime import datetime
+from leave_request import (
+    create_leave_request,
+    get_leave_requests,
+    approve_leave,
+    reject_leave,
+    get_pending_requests,
+    get_pending_leave_count,
+    is_leave_day, 
+    get_leave_notifications,
+    mark_notification_read
+)
 
 from attendance_log import (
     get_logs_by_date_for_employee,
@@ -21,12 +34,33 @@ st.markdown("""
     
     
 <style>
+    .stButton > button {
+        background: linear-gradient(
+            135deg,
+            #2196F3,
+            #1565C0
+        ) !important;
+
+        color: white !important;
+        border: none !important;
+        border-radius: 12px !important;
+        font-weight: bold !important;
+    }
+
+    .stButton > button:hover {
+        background: linear-gradient(
+            135deg,
+            #42A5F5,
+            #1976D2
+        ) !important;
+
+        color: white !important;
+    }
 @media (max-width:768px){
 
         .emp-card{
             padding:12px;
         }
-
         .checkin-wrapper div[data-testid="stButton"] button{
             width:150px;
             height:150px;
@@ -163,7 +197,14 @@ else:
         )
 
         role = st.session_state.user["role"]
+        pending_leave = get_pending_leave_count()
         st.write("ROLE:", role)
+        leave_menu = (
+            f"✅ Duyệt đơn ({pending_leave})"
+            if pending_leave > 0
+            else
+            "✅ Duyệt đơn"
+        )
         if role == "admin":
 
             menu = st.selectbox(
@@ -177,7 +218,7 @@ else:
                     "📍 Chấm công",
                     "📋 Nhật ký chấm công",
                     "📝 Đơn từ",
-                    "✅ Duyệt đơn",
+                    leave_menu,
                     "👤 Tài khoản",
                     "📑 Báo cáo",
                     "🔑 Đổi mật khẩu",
@@ -206,7 +247,7 @@ else:
                 [
                     "📊 Dashboard",
                     "📋 Nhật ký chấm công",
-                    "✅ Duyệt đơn",
+                    leave_menu,
                     "📍 Chấm công",
                     "🔑 Đổi mật khẩu"
                 ]
@@ -258,67 +299,34 @@ else:
         
     if st.session_state.user is None:
         st.stop()
-    # role = st.session_state.user["role"]
-    # if role == "admin":
+    user = st.session_state.user
 
-    #     menu = st.selectbox(
-    #         "📋 Chức năng",
-    #         [
-    #             "📊 Dashboard",
-    #             "👨‍💼 Nhân viên",
-    #             "🏢 Phòng ban",
-    #             "👔 Chức vụ",
-    #             "🕒 Ca làm việc",
-    #             "📍 Chấm công",
-    #             "📋 Nhật ký chấm công",
-    #             "📝 Đơn từ",
-    #             "✅ Duyệt đơn",
-    #             "👤 Tài khoản",
-    #             "📑 Báo cáo",
-    #             "🔑 Đổi mật khẩu",
-    #             "📅 Ngày lễ"
-    #         ]
-    #     )
+    if (
+        user
+        and "employee_code" in user
+    ):
 
-    # elif role == "approver":
+        notifications = get_leave_notifications(
+            user["employee_code"]
+        )
 
-    #     menu = st.radio(
-    #         "Chọn chức năng",
-    #         [
-    #             "Dashboard",
-    #             "Nhân viên",
-    #             "Ca làm việc",
-    #             "Chấm công",
-    #             "Nhật ký chấm công",
-    #             "Báo cáo",
-    #             "Đổi mật khẩu"
-    #         ]
-    #     )
-        
-    # elif role == "manager":
+        for n in notifications:
 
-    #     menu = st.radio(
-    #         "Chọn chức năng",
-    #         [
-    #             "Dashboard",
-    #             "Nhật ký chấm công",
-    #             "Duyệt phép",
-    #             "Chấm công",
-    #             "Đổi mật khẩu"
-    #         ]
-    #     )
+            if n["status"] == "Đã duyệt":
 
-    # else:
+                st.success(
+                    f"✅ Đơn nghỉ từ {n.start_date} đến {n.end_date} đã được duyệt."
+                )
 
-    #     menu = st.radio(
-    #         "Chọn chức năng",
-    #         [
-    #             "Chấm công",
-    #             "Đơn từ",
-    #             "Đổi mật khẩu"
-    #         ]
-    #     )
-        
+            else:
+
+                st.error(
+                    f"❌ Đơn nghỉ từ {n.start_date} đến {n.end_date} đã bị từ chối."
+                )
+
+            mark_notification_read(
+                n.id
+            )
     if st.session_state.page == "profile":
         st.title("👤 Hồ sơ cá nhân")
 
@@ -408,7 +416,19 @@ else:
         .red{
             background:#F44336;
         }
+        div[data-testid="stButton"] > button {
+            background: #1f77ff;
+            color: white;
+            border: none;
+            border-radius: 12px;
+            font-weight: bold;
+            padding: 10px 20px;
+        }
 
+        div[data-testid="stButton"] > button:hover {
+            background: #005ce6;
+            color: white;
+        }
         </style>
         """, unsafe_allow_html=True)
         col1,col2,col3,col4 = st.columns(4)
@@ -730,12 +750,15 @@ else:
             }
         }
         .emp-card{
-            background:linear-gradient(135deg,#2196F3,#42A5F5);
-            color:white;
+            background:linear-gradient(
+                135deg,
+                #2196F3,
+                #42A5F5
+            );
             border-radius:20px;
             padding:15px;
-            width:100%;
-            box-sizing:border-box;
+            color:white;
+            margin-bottom:15px;
         }
         
 
@@ -761,37 +784,11 @@ else:
         div[data-testid="stButton"] > button:active {
             transform:scale(.95);
         }
-        section.main div[data-testid="stButton"] > button {
-
-            width:180px !important;
-            height:180px !important;
-
-            border-radius:50% !important;
-
-            background:linear-gradient(
-                135deg,
-                #1E88E5,
-                #1565C0
-            ) !important;
-
+        div[data-testid="stButton"] > button{
+            background:#2196F3 !important;
             color:white !important;
-
-            font-size:22px !important;
-            font-weight:bold !important;
-
             border:none !important;
-
-            box-shadow:
-                0 15px 35px rgba(
-                    21,
-                    101,
-                    192,
-                    .35
-                );
-
-            animation:pulse 2s infinite;
-
-            margin:auto;
+            border-radius:15px !important;
         }
         </style>
         """, unsafe_allow_html=True)
@@ -847,10 +844,10 @@ else:
                 f"""
                 <div style="
                     text-align:center;
-                    font-size:42px;
+                    font-size:30px;
                     font-weight:bold;
-                    margin-top:20px;
-                    margin-bottom:30px;
+                    margin-top:10px;
+                    margin-bottom:15px;
                 ">
                 
                     🕒 {datetime.now().strftime("%H:%M:%S")}
@@ -862,10 +859,22 @@ else:
             col1, col2, col3 = st.columns([1,2,1])
 
             with col2:
-                check_btn = st.button(
-                    "📍\nCHẤM CÔNG",
-                    key="checkin",
-                    use_container_width=True
+                st.markdown(
+                    '<div class="checkin-btn">',
+                    unsafe_allow_html=True
+                )
+
+
+                with col2:
+                    check_btn = st.button(
+                        "📍 CHẤM CÔNG",
+                        key="checkin",
+                        use_container_width=True
+                    )
+
+                st.markdown(
+                    '</div>',
+                    unsafe_allow_html=True
                 )
             if check_btn:
                 log_count = get_today_log_count(
@@ -1332,7 +1341,6 @@ else:
                     end_date,
                     total_days,
                     reason, 
-                    manager["employee_code"]
                 )
 
                 st.success(
@@ -1465,17 +1473,51 @@ else:
             df,
             use_container_width=True
         )
-        excel_data = df.to_csv(
-            index=False
-        ).encode("utf-8-sig")
+        if not df.empty:
 
-        st.download_button(
-            "📥 Xuất Excel",
-            excel_data,
-            file_name="bao_cao_cham_cong.csv",
-            mime="text/csv"
-        )
-    
+            output = BytesIO()
+
+            export_df = df.copy()
+
+            export_df["Ngày"] = (
+                export_df["Ngày"]
+                .astype(str)
+            )
+
+            export_df["Check In"] = (
+                export_df["Check In"]
+                .astype(str)
+            )
+
+            export_df["Check Out"] = (
+                export_df["Check Out"]
+                .astype(str)
+            )
+
+            with pd.ExcelWriter(
+                output,
+                engine="openpyxl"
+            ) as writer:
+
+                export_df.to_excel(
+                    writer,
+                    index=False,
+                    sheet_name="Báo cáo"
+                )
+
+            st.download_button(
+                "📥 Xuất Excel",
+                data=output.getvalue(),
+                file_name="bao_cao_cham_cong.xlsx",
+                mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+            )
+
+        else:
+
+            st.warning(
+                "Không có dữ liệu để xuất Excel."
+            )
+            
     elif menu == "📅 Ngày lễ":
 
         from holiday import (
@@ -1581,24 +1623,73 @@ else:
             
     
 
-    elif menu == "✅ Duyệt đơn":
+    elif menu.startswith("✅ Duyệt đơn"):
 
         from leave_request import (
             get_pending_requests,
             approve_leave,
-            reject_leave
+            reject_leave,
+            get_pending_leave_count,
+            is_leave_day
         )
 
         user = st.session_state.user
-
         requests = get_pending_requests(
             user["username"],
             user["role"],
             user.get("managed_department")
         )
-
+        pending_leave = get_pending_leave_count()
         st.title("📋 Duyệt đơn")
-        
+        st.info(
+            f"Có {pending_leave} đơn chờ duyệt"
+        )
+
+        if not requests:
+            st.success("Không có đơn cần duyệt")
+        else:
+
+            for r in requests:
+
+                st.markdown(
+                    f"""
+                    👤 {r.fullname}
+
+                    🏢 {r.department}
+
+                    📅 {r.start_date}
+                    → {r.end_date}
+
+                    📝 {r.reason}
+                    """
+                )
+
+                col1, col2 = st.columns(2)
+
+                with col1:
+                    if st.button(
+                        f"✅ Duyệt {r.id}"
+                    ):
+                        approve_leave(
+                            r.id,
+                            user["username"]
+                        )
+                        st.success("Đã duyệt")
+                        st.rerun()
+
+                with col2:
+                    if st.button(
+                        f"❌ Từ chối {r.id}"
+                    ):
+                        reject_leave(
+                            r.id,
+                            user["username"],
+                            "Từ chối"
+                        )
+                        st.success("Đã từ chối")
+                        st.rerun()
+
+                st.divider()
     elif menu == "🔑 Đổi mật khẩu":
 
         from user_management import change_password
