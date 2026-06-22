@@ -1,7 +1,12 @@
 
 import streamlit as st
 from datetime import datetime
-from attendance_log import get_logs_by_date_for_employee
+
+from attendance_log import (
+    get_logs_by_date_for_employee,
+    get_all_logs,
+    get_logs_by_date
+)
 from auth import login
 from employee import (
     get_user_profile,
@@ -10,11 +15,65 @@ from employee import (
 
 st.set_page_config(
     page_title="Hệ thống chấm công V2",
-    layout="wide"
+    layout="centered"
 )
 st.markdown("""
+    
+    
 <style>
+@media (max-width:768px){
 
+        .emp-card{
+            padding:12px;
+        }
+
+        .checkin-wrapper div[data-testid="stButton"] button{
+            width:150px;
+            height:150px;
+            font-size:18px !important;
+        }
+
+        h1,h2,h3{
+            text-align:center;
+        }
+        section.main div[data-testid="stButton"] > button{
+            width:150px !important;
+            height:150px !important;
+            font-size:20px !important;
+        }
+    }
+    @keyframes pulse {
+
+    0% {
+        box-shadow:
+            0 0 0 0 rgba(
+                33,
+                150,
+                243,
+                0.6
+            );
+    }
+
+    70% {
+        box-shadow:
+            0 0 0 15px rgba(
+                33,
+                150,
+                243,
+                0
+            );
+    }
+
+    100% {
+        box-shadow:
+            0 0 0 0 rgba(
+                33,
+                150,
+                243,
+                0
+            );
+    }
+}
 .metric-card {
     padding:20px;
     border-radius:15px;
@@ -56,8 +115,7 @@ st.markdown("""
     );
 }
 
-</style>
-""", unsafe_allow_html=True)
+</style>""", unsafe_allow_html=True)
 if "user" not in st.session_state:
     st.session_state.user = None
 if "page" not in st.session_state:
@@ -358,7 +416,7 @@ else:
 
             st.markdown(f"""
             <div class="dashboard-card blue">
-                👨‍💼<br>
+                👥<br>
                 Tổng nhân viên
                 <h1>{get_employee_count()}</h1>
             </div>
@@ -655,8 +713,89 @@ else:
         )
 
         st.title("📍 Chấm công")
-        left_col, right_col = st.columns([1,3])
-        with left_col:
+        # left_col = st.container()
+        # right_col = st.container()
+        st.markdown("""
+                    
+        <style>
+        @keyframes pulse {
+            0% {
+                box-shadow:0 0 0 0 rgba(33,150,243,.6);
+            }
+            70% {
+                box-shadow:0 0 0 15px rgba(33,150,243,0);
+            }
+            100% {
+                box-shadow:0 0 0 0 rgba(33,150,243,0);
+            }
+        }
+        .emp-card{
+            background:linear-gradient(135deg,#2196F3,#42A5F5);
+            color:white;
+            border-radius:20px;
+            padding:15px;
+            width:100%;
+            box-sizing:border-box;
+        }
+        
+
+        .work-card{
+            background:linear-gradient(135deg,#FF9800,#FFB74D);
+            color:white;
+            padding:20px;
+            border-radius:20px;
+            margin-top:20px;
+        }
+
+        /* Nút chấm công */
+
+
+        /* Hover */
+        div[data-testid="stButton"] > button:hover {
+            transform:scale(1.05);
+            box-shadow:
+                0 15px 35px rgba(21,101,192,.5);
+        }
+
+        /* Nhấn */
+        div[data-testid="stButton"] > button:active {
+            transform:scale(.95);
+        }
+        section.main div[data-testid="stButton"] > button {
+
+            width:180px !important;
+            height:180px !important;
+
+            border-radius:50% !important;
+
+            background:linear-gradient(
+                135deg,
+                #1E88E5,
+                #1565C0
+            ) !important;
+
+            color:white !important;
+
+            font-size:22px !important;
+            font-weight:bold !important;
+
+            border:none !important;
+
+            box-shadow:
+                0 15px 35px rgba(
+                    21,
+                    101,
+                    192,
+                    .35
+                );
+
+            animation:pulse 2s infinite;
+
+            margin:auto;
+        }
+        </style>
+        """, unsafe_allow_html=True)
+        with st.container():
             if st.session_state.user["role"] in [
                 "employee",
                 "manager"
@@ -670,9 +809,13 @@ else:
                 )
                 if emp:
 
-                    st.info(
-                        f"👤 Nhân viên: {employee_code} +-- {emp['fullname']}"
-                    )
+                    st.markdown(f"""
+                        <div class="emp-card">
+                        <h2>👤 {emp['fullname']}</h2>
+                        <p>🆔 Mã nhân viên: {employee_code}</p>
+                        <p>📅 {datetime.now().strftime("%d/%m/%Y")}</p>
+                        </div>
+                        """, unsafe_allow_html=True)
 
                 else:
 
@@ -688,7 +831,7 @@ else:
                 )
             note = st.text_area(
                 "📝 Ghi chú (không bắt buộc)",
-                height=80
+                height=70
             )
             import requests
             import platform
@@ -700,14 +843,31 @@ else:
                 ip_address = "Unknown"
 
             device_info = platform.platform()
-            # if st.session_state.user["role"] == "admin":
-                # st.info(f"🌐 IP: {ip_address}")
-                # st.info(f"💻 Thiết bị: {device_info}")    
-            if st.button(
-                "📍 CHẤM CÔNG",
-                use_container_width=True
-            ):
+            st.markdown(
+                f"""
+                <div style="
+                    text-align:center;
+                    font-size:42px;
+                    font-weight:bold;
+                    margin-top:20px;
+                    margin-bottom:30px;
+                ">
+                
+                    🕒 {datetime.now().strftime("%H:%M:%S")}
+                </div>
+                """,
+                unsafe_allow_html=True
+            )
+            
+            col1, col2, col3 = st.columns([1,2,1])
 
+            with col2:
+                check_btn = st.button(
+                    "📍\nCHẤM CÔNG",
+                    key="checkin",
+                    use_container_width=True
+                )
+            if check_btn:
                 log_count = get_today_log_count(
                     employee_code
                 )
@@ -733,134 +893,52 @@ else:
 
             from datetime import date
 
+            # logs = get_logs_by_date_for_employee(
+            #     selected_date,
+            #     employee_code
+            # )
+            log_count = get_today_log_count(
+                employee_code
+            )
+
+            st.info(
+                f"📍 Hôm nay đã chấm {log_count}/8 lần"
+            )
+        
+        from datetime import datetime
+
+        st.divider()
+        
+        with st.container():
+
+            st.subheader("📋 Lịch sử chấm công")
+
             selected_date = st.date_input(
-                "📅 Chọn ngày xem lịch sử",
-                value=date.today()
+                "📅 Chọn ngày",
+                value=date.today(),
+                key="history_date"
             )
 
             logs = get_logs_by_date_for_employee(
                 selected_date,
                 employee_code
             )
-            log_count = get_today_log_count(
-                employee_code
-            )
 
-            st.info(
-                f"📍 Hôm nay đã chấm công {log_count}/8 lần"
-            )
-        import calendar
-        from holiday import get_holiday_dict
-        from datetime import datetime
+            if logs:
 
-        st.divider()
-        with right_col:
-            st.subheader("📅 Lịch chấm công tháng")
-            month = st.selectbox(
-                "Tháng",
-                list(range(1,13)),
-                index=datetime.now().month - 1
-            )
+                for i, log in enumerate(logs, start=1):
 
-            year = st.number_input(
-                "Năm",
-                value=datetime.now().year,
-                step=1
-            )
-            import calendar
-            cal = calendar.monthcalendar(
-                int(year),
-                int(month)
-            )
-            week_header = st.columns(7)
+                    st.success(
+                        f"Lần {i} • "
+                        f"{log[0].strftime('%H:%M:%S')}"
+                    )
 
-            days_name = [
-                "T2","T3","T4",
-                "T5","T6","T7","CN"
-            ]
+            else:
 
-            for i,name in enumerate(days_name):
-                week_header[i].markdown(
-                    f"**{name}**"
+                st.info(
+                    "Chưa có dữ liệu chấm công"
                 )
-
-            for week in cal:
-
-                cols = st.columns(7)
-
-                for i, day in enumerate(week):
-
-                    if day == 0:
-
-                        cols[i].write("")
-
-                    else:
-
-                        cols[i].button(
-                            str(day),
-                            key=f"day_{year}_{month}_{day}",
-                            use_container_width=True
-                        )
-        st.subheader(
-            "Lịch sử hôm nay"
-        )
-
-        from datetime import timedelta
-
-        for i, log in enumerate(logs, start=1):
-
-            display_time = log[0]
-
-            st.write(
-                f"Lần {i}: {display_time.strftime('%d/%m/%Y %H:%M:%S')}"
-            )
-            
-    elif menu == "📋 Nhật ký chấm công":
-
-        from attendance_log import (
-            get_logs_by_date,
-            get_daily_summary
-        )
-
-        from employee import (
-            get_employee_codes
-        )
-
-        st.title(
-            "📊 Nhật ký chấm công"
-        )
-
-        selected_date = st.date_input(
-            "📅 Chọn ngày"
-        )
-        employee_filter = st.selectbox(
-            "👤 Nhân viên",
-            ["Tất cả"] + get_employee_codes()
-        )
-        logs = get_logs_by_date(
-            selected_date,
-            employee_filter
-        )
-
-        st.dataframe(
-            logs,
-            use_container_width=True
-        )
-        
-        st.divider()
-
-        st.subheader(
-            "📋 Tổng hợp công trong ngày"
-        )
-
-        summary = get_daily_summary(
-            selected_date
-        )
-
-        st.dataframe(
-            summary,
-            use_container_width=True
-        )
+                
     elif menu == "👤 Tài khoản":
 
         from user_management import (
@@ -1294,18 +1372,100 @@ else:
                 st.success(
                     "Đã gửi yêu cầu cập nhật công"
                 )
-    elif menu == "📑 Báo cáo":
-        st.title("📑 Báo cáo")
+    
+    elif menu == "📋 Nhật ký chấm công":
 
+        st.subheader("📋 Nhật ký chấm công")
+
+        selected_date = st.date_input(
+            "📅 Chọn ngày"
+        )
+
+        log_df = get_logs_by_date(
+            selected_date
+        )
+
+        if not log_df.empty:
+            st.dataframe(
+                log_df,
+                use_container_width=True
+            )
+        else:
+            st.info(
+                "Không có dữ liệu."
+            )
+    elif menu == "📑 Báo cáo":
+        
         from report import attendance_report
 
-        report_df = attendance_report()
+        st.subheader("📑 Báo cáo")
 
+        filter_type = st.selectbox(
+            "Xem dữ liệu",
+            [
+            "Hôm nay",
+            "Hôm qua",
+            "7 ngày gần nhất",
+            "30 ngày gần nhất",
+            "Tháng này",
+            "Tháng trước",
+            "Chọn ngày bất kỳ"
+                ]
+            )
+
+        if filter_type == "Hôm nay":
+            df = attendance_report("today")
+
+        elif filter_type == "Hôm qua":
+            df = attendance_report("yesterday")
+
+        elif filter_type == "7 ngày gần nhất":
+            df = attendance_report("7days")
+
+        elif filter_type == "30 ngày gần nhất":
+            df = attendance_report("30days")
+
+        elif filter_type == "Tháng này":
+            df = attendance_report("this_month")
+
+        elif filter_type == "Tháng trước":
+            df = attendance_report("last_month")
+
+        elif filter_type == "Chọn ngày bất kỳ":
+
+            selected_date = st.date_input(
+                "📅 Chọn ngày"
+            )
+
+            df = attendance_report(
+                "custom",
+                selected_date
+            )
+
+        else:
+            df = attendance_report("today")
+
+        keyword = st.text_input(
+            "🔍 Tìm theo mã nhân viên hoặc họ tên"
+        )
+        if keyword:
+
+            keyword = keyword.lower()
+
+            df = df[
+                df["Mã NV"].astype(str)
+                .str.lower()
+                .str.contains(keyword)
+                |
+                df["Họ tên"].astype(str)
+                .str.lower()
+                .str.contains(keyword)
+            ]
         st.dataframe(
-            report_df,
+            df,
             use_container_width=True
         )
-        excel_data = report_df.to_csv(
+        excel_data = df.to_csv(
             index=False
         ).encode("utf-8-sig")
 

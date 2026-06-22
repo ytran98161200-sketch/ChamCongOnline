@@ -3,7 +3,7 @@ from datetime import datetime, datetime, timedelta
 from database import engine
 from sqlalchemy import log, text
 import pandas as pd
-
+from attendance import check_in, check_out
 
 def add_log(
     employee_code,
@@ -44,9 +44,16 @@ def add_log(
             
             }
         )
-        
         conn.commit()
+        try:
+            check_in(employee_code)
+        except Exception as e:
+            print("CHECK_IN ERROR:", e)
 
+        try:
+            check_out(employee_code)
+        except Exception as e:
+            print("CHECK_OUT ERROR:", e)
 def get_today_logs(employee_code):
 
     with engine.connect() as conn:
@@ -90,7 +97,7 @@ def get_all_logs():
             ORDER BY a.scan_time DESC
             """)
         )
-
+        print(rows)
         rows = result.fetchall()
 
     return pd.DataFrame(
