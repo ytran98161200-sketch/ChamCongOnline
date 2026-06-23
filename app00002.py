@@ -1,4 +1,4 @@
-
+DEBUG_MODE = True
 import streamlit as st
 import pandas as pd
 from streamlit_js_eval import get_geolocation
@@ -156,6 +156,8 @@ if "user" not in st.session_state:
     st.session_state.user = None
 if "page" not in st.session_state:
     st.session_state.page = "dashboard"
+if "checkin_success" not in st.session_state:
+    st.session_state.checkin_success = False
 if st.session_state.user is None:
 
     st.title("🕒 HỆ THỐNG CHẤM CÔNG V2")
@@ -728,27 +730,23 @@ else:
             "checkin_success",
             False
         ):
-            if st.session_state.get(
-                "checkin_success",
-                False
-            ):
-                st.success(
-                    f"""
-            ✅ Chấm công thành công!
 
-            🕒 {datetime.now().strftime('%d/%m/%Y %H:%M:%S')}
-            """
-                )
+            st.success(
+                f"""
+        ✅ Chấm công thành công!
 
-                st.balloons()
+        🕒 {datetime.now().strftime('%d/%m/%Y %H:%M:%S')}
+        """
+            )
 
-                del st.session_state[
-                    "checkin_success"
-                ]
+        st.balloons()
 
-            del st.session_state[
-                "checkin_success"
-            ]
+        if st.button(
+            "✔️ Đóng thông báo",
+            key="close_success"
+        ):
+            st.session_state.checkin_success = False
+            st.rerun()
         from attendance_log import (
             add_log,
             get_today_logs,
@@ -917,48 +915,7 @@ else:
                 st.warning(
                     "⚠️ Vui lòng bật GPS."
                 )
-            allow_checkin = False
-            lat = None
-            lon = None
-            distance = None
-
-            # location = get_geolocation()
-
-
-            if (
-                location
-                and "coords" in location
-            ):
-
-                lat = location["coords"]["latitude"]
-                lon = location["coords"]["longitude"]
-
-                ok, distance = check_company_location(
-                    lat,
-                    lon
-                )
-
-                st.info(
-                    f"📍 Khoảng cách: {distance:.0f} mét"
-                )
-
-                if ok:
-                    allow_checkin = True
-                    st.success(
-                        "✅ Bạn đang ở công ty"
-                    )
-                else:
-                    st.error(
-                        "❌ Bạn không ở trong phạm vi công ty"
-                    )
-
-            elif (
-                location
-                and "error" in location
-            ):
-                st.warning(
-                    "⚠️ Bạn chưa cho phép truy cập vị trí."
-                )
+            
             import requests
             import platform
             try:
@@ -969,7 +926,14 @@ else:
                 ip_address = "Unknown"
             
             device_info = platform.platform()
-            allow_checkin = allow_gps
+            allow_checkin = (
+                allow_gps
+                or DEBUG_MODE
+            )
+            if DEBUG_MODE:
+                st.warning(
+                    "⚠️ Đang ở chế độ TEST - bỏ qua kiểm tra GPS."
+                )
             st.markdown(
                 f"""
                 <div style="
@@ -995,8 +959,8 @@ else:
                 )
 
 
-                with col2:
-                    check_btn = st.button(
+                # with col2:
+                check_btn = st.button(
                         "📍 CHẤM CÔNG",
                         key="checkin",
                         use_container_width=True
@@ -1028,16 +992,16 @@ else:
                     )
 
                     st.stop()
-                    add_log(
-                        employee_code,
-                        note,
-                        ip_address,
-                        device_info
-                    )
+                add_log(
+                    employee_code,
+                    note,
+                    ip_address,
+                    device_info
+                )
 
-                    st.session_state.checkin_success = True
+                st.session_state.checkin_success = True
 
-                    st.rerun()
+                st.rerun()
             st.divider()
 
             from datetime import date
@@ -1287,7 +1251,7 @@ else:
                         f"✅ Đã tạo tài khoản {username}"
                     )
 
-                    st.balloons()
+                    # st.balloons()
 
                     st.rerun()
 
