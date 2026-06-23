@@ -32,6 +32,14 @@ st.set_page_config(
     page_title="Hệ thống chấm công V2",
     layout="centered"
 )
+if st.session_state.get(
+    "toast_message"
+):
+    st.toast(
+        st.session_state.toast_message
+    )
+
+    st.session_state.toast_message = None
 st.markdown("""
     
     
@@ -158,6 +166,8 @@ if "page" not in st.session_state:
     st.session_state.page = "dashboard"
 if "checkin_success" not in st.session_state:
     st.session_state.checkin_success = False
+if "create_user_success" not in st.session_state:
+    st.session_state.create_user_success = False
 if st.session_state.user is None:
 
     st.title("🕒 HỆ THỐNG CHẤM CÔNG V2")
@@ -586,7 +596,7 @@ else:
                         position
                     )
 
-                    st.toast(
+                    st.session_state.toast_message = (
                         f"✅ Đã tạo nhân viên {fullname}"
                     )
 
@@ -608,22 +618,42 @@ else:
             employee_data = get_employee(
                 employee_selected
             )
+            if (
+                "selected_employee"
+                not in st.session_state
+            ):
+                st.session_state.selected_employee = ""
 
+            if (
+                st.session_state.selected_employee
+                != employee_selected
+            ):
+                st.session_state.selected_employee = employee_selected
+
+                st.session_state.edit_employee_name = (
+                    employee_data["fullname"]
+                )
+
+                st.session_state.edit_employee_department = (
+                    employee_data["department"]
+                )
+
+                st.session_state.edit_employee_position = (
+                    employee_data["position"]
+                )
             fullname_edit = st.text_input(
                 "Họ tên",
-                value=employee_data["fullname"],
                 key="edit_employee_name"
             )
-
             department_edit = st.text_input(
                 "Phòng ban",
-                value=employee_data["department"],
+                # value=employee_data["department"],
                 key="edit_employee_department"
             )
 
             position_edit = st.text_input(
                 "Chức vụ",
-                value=employee_data["position"],
+                # value=employee_data["position"],
                 key="edit_employee_position"
             )
 
@@ -660,8 +690,8 @@ else:
                         employee_selected
                     )
 
-                    st.toast(
-                        "✅ Đã xóa"
+                    st.session_state.toast_message = (
+                        "✅ Đã xóa nhân viên"
                     )
 
                     st.rerun()
@@ -713,7 +743,9 @@ else:
                     early_allow
                 )
 
-                st.toast("✅ Đã lưu ca")
+                st.session_state.toast_message = (
+                    "✅ Đã lưu ca làm việc"
+                )
 
                 st.rerun()
 
@@ -1671,8 +1703,8 @@ else:
                 new_department
             )
 
-            st.toast(
-                "Đã thêm phòng ban"
+            st.session_state.toast_message = (
+                "✅ Đã thêm phòng ban"
             )
 
             st.rerun()
