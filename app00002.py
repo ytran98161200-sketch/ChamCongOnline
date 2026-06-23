@@ -730,23 +730,13 @@ else:
             "checkin_success",
             False
         ):
-
             st.success(
                 f"""
-        ✅ Chấm công thành công!
+        ✅ CHẤM CÔNG THÀNH CÔNG
 
-        🕒 {datetime.now().strftime('%d/%m/%Y %H:%M:%S')}
+        🕒 {datetime.now().strftime('%H:%M:%S')}
         """
             )
-
-        st.balloons()
-
-        if st.button(
-            "✔️ Đóng thông báo",
-            key="close_success"
-        ):
-            st.session_state.checkin_success = False
-            st.rerun()
         from attendance_log import (
             add_log,
             get_today_logs,
@@ -1251,7 +1241,6 @@ else:
                         f"✅ Đã tạo tài khoản {username}"
                     )
 
-                    # st.balloons()
 
                     st.rerun()
 
@@ -1451,7 +1440,6 @@ else:
                     "✅ Đã gửi đơn nghỉ phép"
                 )
 
-                st.balloons()
 
                 st.rerun()
 
