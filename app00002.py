@@ -1,4 +1,4 @@
-DEBUG_MODE = True
+DEBUG_MODE = False
 import streamlit as st
 import pandas as pd
 from streamlit_js_eval import get_geolocation
