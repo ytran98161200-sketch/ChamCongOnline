@@ -724,6 +724,31 @@ else:
                 use_container_width=True
             )
     elif menu == "📍 Chấm công":
+        if st.session_state.get(
+            "checkin_success",
+            False
+        ):
+            if st.session_state.get(
+                "checkin_success",
+                False
+            ):
+                st.success(
+                    f"""
+            ✅ Chấm công thành công!
+
+            🕒 {datetime.now().strftime('%d/%m/%Y %H:%M:%S')}
+            """
+                )
+
+                st.balloons()
+
+                del st.session_state[
+                    "checkin_success"
+                ]
+
+            del st.session_state[
+                "checkin_success"
+            ]
         from attendance_log import (
             add_log,
             get_today_logs,
@@ -832,14 +857,73 @@ else:
                 "📝 Ghi chú (không bắt buộc)",
                 height=70
             )
+            allow_gps = False
+            distance = None
+            accuracy = None
+
+            location = get_geolocation(
+                component_key="gps_checkin"
+            )
+
+            if (
+                location
+                and "coords" in location
+            ):
+
+                lat = location["coords"]["latitude"]
+                lon = location["coords"]["longitude"]
+                accuracy = location["coords"]["accuracy"]
+
+                if accuracy <= 100:
+
+                    ok, distance = check_company_location(
+                        lat,
+                        lon
+                    )
+
+                    if ok:
+                        allow_gps = True
+
+                        st.success(
+                            "✅ Bạn đang ở công ty"
+                        )
+
+                    else:
+                        st.error(
+                            "❌ Bạn không ở trong công ty"
+                        )
+
+                    st.info(
+                        f"""
+            📍 Khoảng cách:
+            {distance:.0f} m
+
+            🎯 Độ chính xác GPS:
+            {accuracy:.0f} m
+            """
+                    )
+
+                else:
+
+                    st.warning(
+                        f"GPS chưa chính xác ({accuracy:.0f}m)"
+                    )
+
+            elif (
+                location
+                and "error" in location
+            ):
+
+                st.warning(
+                    "⚠️ Vui lòng bật GPS."
+                )
             allow_checkin = False
             lat = None
             lon = None
             distance = None
 
-            location = get_geolocation()
+            # location = get_geolocation()
 
-            st.write(location)
 
             if (
                 location
@@ -885,6 +969,7 @@ else:
                 ip_address = "Unknown"
             
             device_info = platform.platform()
+            allow_checkin = allow_gps
             st.markdown(
                 f"""
                 <div style="
@@ -943,16 +1028,16 @@ else:
                     )
 
                     st.stop()
-                add_log(
+                    add_log(
                         employee_code,
                         note,
                         ip_address,
                         device_info
                     )
 
-                st.toast("✅ Đã ghi nhận chấm công")
+                    st.session_state.checkin_success = True
 
-                st.rerun()
+                    st.rerun()
             st.divider()
 
             from datetime import date
