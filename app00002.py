@@ -586,7 +586,7 @@ else:
                         position
                     )
 
-                    st.success(
+                    st.toast(
                         f"✅ Đã tạo nhân viên {fullname}"
                     )
 
@@ -1237,7 +1237,7 @@ else:
                         managed_department
                     )
 
-                    st.success(
+                    st.toast(
                         f"✅ Đã tạo tài khoản {username}"
                     )
 
@@ -1634,7 +1634,7 @@ else:
                 holiday_name
             )
 
-            st.success(
+            st.toast(
                 "Đã lưu ngày lễ"
             )
 
@@ -1671,7 +1671,7 @@ else:
                 new_department
             )
 
-            st.success(
+            st.toast(
                 "Đã thêm phòng ban"
             )
 
@@ -1707,7 +1707,7 @@ else:
                 new_position
             )
 
-            st.success(
+            st.toast(
                 "Đã thêm chức vụ"
             )
 
@@ -1838,7 +1838,7 @@ else:
 
                 if success:
 
-                    st.success(
+                    st.toast(
                         "✅ Đổi mật khẩu thành công"
                     )
 
