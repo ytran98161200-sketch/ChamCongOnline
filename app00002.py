@@ -1,6 +1,8 @@
 
 import streamlit as st
 import pandas as pd
+from streamlit_js_eval import get_geolocation
+from utils.gps import check_company_location
 from io import BytesIO
 from datetime import datetime
 from leave_request import (
@@ -830,6 +832,49 @@ else:
                 "📝 Ghi chú (không bắt buộc)",
                 height=70
             )
+            allow_checkin = False
+            lat = None
+            lon = None
+            distance = None
+
+            location = get_geolocation()
+
+            st.write(location)
+
+            if (
+                location
+                and "coords" in location
+            ):
+
+                lat = location["coords"]["latitude"]
+                lon = location["coords"]["longitude"]
+
+                ok, distance = check_company_location(
+                    lat,
+                    lon
+                )
+
+                st.info(
+                    f"📍 Khoảng cách: {distance:.0f} mét"
+                )
+
+                if ok:
+                    allow_checkin = True
+                    st.success(
+                        "✅ Bạn đang ở công ty"
+                    )
+                else:
+                    st.error(
+                        "❌ Bạn không ở trong phạm vi công ty"
+                    )
+
+            elif (
+                location
+                and "error" in location
+            ):
+                st.warning(
+                    "⚠️ Bạn chưa cho phép truy cập vị trí."
+                )
             import requests
             import platform
             try:
@@ -838,7 +883,7 @@ else:
                 ).text
             except:
                 ip_address = "Unknown"
-
+            
             device_info = platform.platform()
             st.markdown(
                 f"""
@@ -877,9 +922,19 @@ else:
                     unsafe_allow_html=True
                 )
             if check_btn:
+
+                if not allow_checkin:
+                    st.error(
+                        "❌ Không thể chấm công ngoài công ty."
+                    )
+                    st.stop()
+
                 log_count = get_today_log_count(
                     employee_code
                 )
+                # log_count = get_today_log_count(
+                #     employee_code
+                # )
 
                 if log_count >= 8:
 

@@ -5,3 +5,7 @@ psycopg2-binary
 sqlalchemy
 bcrypt
 python-dotenv
+geopy
+streamlit-js-eval
+qrcode
+Pillow
