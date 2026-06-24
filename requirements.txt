@@ -9,3 +9,4 @@ geopy
 streamlit-js-eval
 qrcode
 Pillow
+pytz
