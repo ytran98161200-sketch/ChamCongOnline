@@ -6,7 +6,8 @@ def add_employee(
     employee_code,
     fullname,
     department,
-    position
+    position,
+    email
 ):
 
     with engine.connect() as conn:
@@ -18,6 +19,7 @@ def add_employee(
                 fullname,
                 department,
                 position,
+                email,
                 status
             )
             VALUES(
@@ -25,6 +27,7 @@ def add_employee(
                 :fullname,
                 :department,
                 :position,
+                :email,
                 'Đang làm'
             )
             """),
@@ -32,7 +35,8 @@ def add_employee(
                 "employee_code": employee_code,
                 "fullname": fullname,
                 "department": department,
-                "position": position
+                "position": position,
+                "email": email
             }
         )
 
@@ -166,9 +170,6 @@ def update_employee(
         conn.commit()
 
 
-
-
-
 def get_employee(employee_code):
 
     with engine.connect() as conn:
@@ -176,10 +177,12 @@ def get_employee(employee_code):
         result = conn.execute(
             text("""
             SELECT
-                employee_code,
-                fullname,
-                department,
-                position
+            employee_code,
+            fullname,
+            department,
+            position,
+            shift_code,
+            email
             FROM employees
             WHERE employee_code=:employee_code
             """),
@@ -197,7 +200,9 @@ def get_employee(employee_code):
         "employee_code": row[0],
         "fullname": row[1],
         "department": row[2],
-        "position": row[3]
+        "position": row[3],
+        "shift_code": row[4],
+        "email": row[5]
     }
 
 def get_employee_count():

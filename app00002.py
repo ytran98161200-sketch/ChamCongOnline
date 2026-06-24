@@ -1,5 +1,10 @@
 DEBUG_MODE = False
 import streamlit as st
+from datetime import datetime
+import pytz
+VN_TZ = pytz.timezone("Asia/Ho_Chi_Minh")
+def vn_now():
+    return datetime.now(VN_TZ)
 import pandas as pd
 from streamlit_js_eval import get_geolocation
 from utils.gps import check_company_location
@@ -32,6 +37,28 @@ st.set_page_config(
     page_title="Hệ thống chấm công V2",
     layout="centered"
 )
+st.markdown("""
+<style>
+
+/* thu nhỏ menu */
+div[data-testid="stPopoverContent"]{
+    width: 220px !important;
+}
+
+/* nút avatar */
+div[data-testid="stPopover"] button{
+    border-radius: 20px !important;
+    padding: 6px 12px !important;
+}
+
+/* nút trong menu */
+div[data-testid="stPopoverContent"] button{
+    width: 100% !important;
+    min-height: 35px !important;
+}
+
+</style>
+""", unsafe_allow_html=True)
 if st.session_state.get(
     "toast_message"
 ):
@@ -285,7 +312,18 @@ else:
         st.title("🕒 Hệ thống chấm công")
 
     with header2:
-        st.success("🟢 Online")
+        st.markdown("""
+            <div style="
+            display:inline-block;
+            padding:6px 14px;
+            border-radius:20px;
+            background:#0f3d1f;
+            color:#4ade80;
+            font-weight:600;
+            font-size:14px;">
+            🟢 Online
+            </div>
+            """, unsafe_allow_html=True)
         st.caption(
             datetime.now().strftime("%d/%m/%Y")
         )
@@ -297,23 +335,27 @@ else:
         if st.session_state.user:
             username = st.session_state.user["username"]
 
-        with st.popover(f"👤 {username}"):
+        with st.popover("👤"):
 
-            if st.button("Thông tin cá nhân"):
+            st.caption(f"👤 {username}")
 
+            if st.button(
+                "📋 Thông tin cá nhân",
+                key="profile_btn"
+            ):
                 st.session_state.page = "profile"
-
                 st.rerun()
 
-            if st.button("Đăng xuất"):
-
-                st.session_state.user = None
-
+            if st.button(
+                "🚪 Đăng xuất",
+                key="logout_btn"
+            ):
+                logout()
                 st.rerun()
-        
-    if st.session_state.user is None:
-        st.stop()
-    user = st.session_state.user
+                        
+            if st.session_state.user is None:
+                st.stop()
+            user = st.session_state.user
 
     if (
         user
@@ -570,7 +612,9 @@ else:
                 "Họ tên",
                 key="add_employee_name"
             )
-
+            email = st.text_input(
+                "Email"
+            )
             from department import get_departments
 
             department = st.selectbox(
