@@ -21,7 +21,10 @@ from leave_request import (
     get_leave_notifications,
     mark_notification_read
 )
-
+from monthly_report import (
+    get_monthly_report,
+    export_monthly_report
+)
 from attendance_log import (
     get_logs_by_date_for_employee,
     get_all_logs,
@@ -263,7 +266,8 @@ else:
                     "👤 Tài khoản",
                     "📑 Báo cáo",
                     "🔑 Đổi mật khẩu",
-                    "📅 Ngày lễ"
+                    "📅 Ngày lễ",
+                    "📊 Báo cáo tháng"
                 ]
             )
         elif role == "approver":
@@ -1062,7 +1066,11 @@ else:
                     employee_code,
                     note,
                     ip_address,
-                    device_info
+                    device_info,
+                    lat,
+                    lon,
+                    accuracy,
+                    distance
                 )
 
                 st.session_state.checkin_success = True
@@ -1927,3 +1935,54 @@ else:
                     st.error(
                         "❌ Mật khẩu hiện tại không đúng"
                     )
+    elif menu == "📊 Báo cáo tháng":
+        st.subheader(
+            "📊 Báo cáo chấm công tháng"
+        )
+
+        col1, col2 = st.columns(2)
+
+        with col1:
+            month = st.selectbox(
+                "Tháng",
+                range(1, 13)
+            )
+
+        with col2:
+            year = st.selectbox(
+                "Năm",
+                range(2025, 2031)
+            )
+
+        df = get_monthly_report(
+            month,
+            year
+        )
+
+        st.dataframe(
+            df,
+            use_container_width=True
+        )
+
+        col1, col2 = st.columns(2)
+
+        with col1:
+
+            if st.button(
+                "📊 Xem báo cáo"
+            ):
+                st.rerun()
+
+        with col2:
+
+            output = export_monthly_report(
+                month,
+                year
+            )
+
+            st.download_button(
+                "📥 Xuất Excel",
+                data=output.getvalue(),
+                file_name=f"BCCVP_{month}_{year}.xlsx",
+                mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+            )

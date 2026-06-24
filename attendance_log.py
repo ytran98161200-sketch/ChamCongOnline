@@ -9,7 +9,11 @@ def add_log(
     employee_code,
     note="",
     ip_address="",
-    device_info=""
+    device_info="",
+    latitude=None,
+    longitude=None,
+    accuracy=None,
+    distance=None
 ):
 
     from datetime import datetime, timedelta
@@ -24,24 +28,34 @@ def add_log(
                 scan_time,
                 note,
                 ip_address,
-                device_info
+                device_info,
+                latitude,
+                longitude,
+                accuracy,
+                distance
             )
             VALUES(
                 :employee_code,
                 :scan_time,
                 :note,
                 :ip_address,
-                :device_info
+                :device_info,
+                :latitude,
+                :longitude,
+                :accuracy,
+                :distance
             )
             """),
             {
-                
                 "employee_code": employee_code,
                 "scan_time": vietnam_time,
                 "note": note,
                 "ip_address": ip_address,
-                "device_info": device_info
-            
+                "device_info": device_info,
+                "latitude": latitude,
+                "longitude": longitude,
+                "accuracy": accuracy,
+                "distance": distance
             }
         )
         conn.commit()
