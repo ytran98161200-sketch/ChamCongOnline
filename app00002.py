@@ -325,7 +325,7 @@ else:
             </div>
             """, unsafe_allow_html=True)
         st.caption(
-            datetime.now().strftime("%d/%m/%Y")
+            vn_now().strftime("%d/%m/%Y")
         )
 
     with header3:
@@ -810,7 +810,7 @@ else:
                 f"""
         ✅ CHẤM CÔNG THÀNH CÔNG
 
-        🕒 {datetime.now().strftime('%H:%M:%S')}
+        🕒 {vn_now().strftime('%H:%M:%S')}
         """
             )
         from attendance_log import (
@@ -901,7 +901,7 @@ else:
                         <div class="emp-card">
                         <h2>👤 {emp['fullname']}</h2>
                         <p>🆔 Mã nhân viên: {employee_code}</p>
-                        <p>📅 {datetime.now().strftime("%d/%m/%Y")}</p>
+                        <p>📅 {vn_now().strftime("%d/%m/%Y")}</p>
                         </div>
                         """, unsafe_allow_html=True)
 
@@ -1010,7 +1010,7 @@ else:
                     margin-bottom:15px;
                 ">
                 
-                    🕒 {datetime.now().strftime("%H:%M:%S")}
+                    🕒 {vn_now().strftime("%H:%M:%S")}
                 </div>
                 """,
                 unsafe_allow_html=True
