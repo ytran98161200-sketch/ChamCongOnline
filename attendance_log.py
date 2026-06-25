@@ -361,3 +361,20 @@ def get_logs_by_date_for_employee(
         )
 
         return result.fetchall()
+    
+def get_last_log(employee_code):
+
+    with engine.connect() as conn:
+
+        return conn.execute(
+            text("""
+                SELECT scan_time
+                FROM attendance_logs
+                WHERE employee_code=:employee_code
+                ORDER BY scan_time DESC
+                LIMIT 1
+            """),
+            {
+                "employee_code": employee_code
+            }
+        ).fetchone()

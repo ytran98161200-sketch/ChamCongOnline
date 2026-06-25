@@ -197,24 +197,31 @@ if "user" not in st.session_state:
     st.session_state.user = None
 if "page" not in st.session_state:
     st.session_state.page = "dashboard"
-if "checkin_success" not in st.session_state:
-    st.session_state.checkin_success = False
+# if "checkin_success" not in st.session_state:
+#     st.session_state.checkin_success = False
 if "create_user_success" not in st.session_state:
     st.session_state.create_user_success = False
 if st.session_state.user is None:
 
     st.title("🕒 HỆ THỐNG CHẤM CÔNG V2")
 
-    username = st.text_input(
-        "Tài khoản"
-    )
+    with st.form("login_form"):
 
-    password = st.text_input(
-        "Mật khẩu",
-        type="password"
-    )
+        username = st.text_input(
+            "Tài khoản"
+        )
 
-    if st.button("Đăng nhập"):
+        password = st.text_input(
+            "Mật khẩu",
+            type="password"
+        )
+
+        login_btn = st.form_submit_button(
+            "🔑 Đăng nhập",
+            use_container_width=True
+        )
+
+    if login_btn:
 
         user = login(
             username,
@@ -222,15 +229,17 @@ if st.session_state.user is None:
         )
 
         if user:
-            st.toast("✅ Đăng nhập thành công")
+            st.toast(
+                "✅ Đăng nhập thành công"
+            )
+
             st.session_state.user = user
 
             st.rerun()
 
         else:
-
             st.error(
-                "Sai tài khoản hoặc mật khẩu"
+                "❌ Sai tài khoản hoặc mật khẩu"
             )
 
 else:
@@ -358,8 +367,7 @@ else:
                 key="logout_btn"
             ):
                 logout()
-                st.rerun()
-                        
+                                    
             if st.session_state.user is None:
                 st.stop()
             user = st.session_state.user
@@ -809,17 +817,17 @@ else:
                 use_container_width=True
             )
     elif menu == "📍 Chấm công":
-        if st.session_state.get(
-            "checkin_success",
-            False
-        ):
-            st.success(
-                f"""
-        ✅ CHẤM CÔNG THÀNH CÔNG
+        # if st.session_state.get(
+        #     "checkin_success",
+        #     False
+        # ):
+        #     st.success(
+        #         f"""
+        # ✅ CHẤM CÔNG THÀNH CÔNG
 
-        🕒 {vn_now().strftime('%H:%M:%S')}
-        """
-            )
+        # 🕒 {vn_now().strftime('%H:%M:%S')}
+        # """
+        #     )
         from attendance_log import (
             add_log,
             get_today_logs,
@@ -1076,17 +1084,16 @@ else:
                     distance
                 )
 
-                st.session_state.checkin_success = True
+                st.session_state.toast_message = (
+                    f"📍 Chấm công thành công - "
+                    f"{vn_now().strftime('%H:%M:%S')}"
+                )
 
                 st.rerun()
             st.divider()
 
             from datetime import date
 
-            # logs = get_logs_by_date_for_employee(
-            #     selected_date,
-            #     employee_code
-            # )
             log_count = get_today_log_count(
                 employee_code
             )
