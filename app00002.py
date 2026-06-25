@@ -1,4 +1,4 @@
-DEBUG_MODE = False
+DEBUG_MODE = True
 import streamlit as st
 from datetime import datetime
 import pytz
@@ -641,7 +641,9 @@ else:
                         employee_code,
                         fullname,
                         department,
-                        position
+                        position,
+                        email
+
                     )
 
                     st.session_state.toast_message = (
@@ -650,11 +652,9 @@ else:
 
                     st.rerun()
 
-                except Exception:
+                except Exception as e:
 
-                    st.error(
-                        f"❌ Mã nhân viên {employee_code} đã tồn tại"
-                    )
+                    st.error(f"❌ Lỗi: {e}")
 
         with tab3:
 
