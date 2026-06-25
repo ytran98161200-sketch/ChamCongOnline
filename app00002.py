@@ -30,7 +30,10 @@ from attendance_log import (
     get_all_logs,
     get_logs_by_date
 )
-from auth import login
+from auth import (
+    login,
+    logout
+)
 from employee import (
     get_user_profile,
     update_user_profile

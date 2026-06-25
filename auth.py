@@ -42,3 +42,10 @@ def login(username,password):
         return dict(user._mapping)
 
     return None
+
+import streamlit as st
+
+def logout():
+    st.session_state.user = None
+    st.session_state.page = "dashboard"
+    st.rerun()
