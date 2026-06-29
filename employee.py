@@ -3,13 +3,15 @@ from sqlalchemy import text
 import pandas as pd
 
 def add_employee(
+    company_id,
+    department_id,
     employee_code,
     fullname,
     department,
     position,
-    email
+    email,
+    employee_type="office"
 ):
-
     with engine.connect() as conn:
 
         conn.execute(
@@ -17,26 +19,36 @@ def add_employee(
             INSERT INTO employees(
                 employee_code,
                 fullname,
+                company_id,
+                department_id,
                 department,
                 position,
                 email,
+                employee_type,
                 status
             )
             VALUES(
                 :employee_code,
                 :fullname,
+                :company_id,
+                :department_id,
                 :department,
                 :position,
                 :email,
+                :employee_type,
                 'Đang làm'
             )
             """),
-            {
+            
+                {
                 "employee_code": employee_code,
                 "fullname": fullname,
+                "company_id": company_id,
+                "department_id": department_id,
                 "department": department,
                 "position": position,
-                "email": email
+                "email": email,
+                "employee_type": employee_type
             }
         )
 
@@ -48,13 +60,14 @@ def get_employees(keyword=""):
     with engine.connect() as conn:
         result = conn.execute(
             text("""
-            SELECT
-                e.employee_code,
-                e.fullname,
-                e.department,
-                e.position,
-                COALESCE(s.shift_name,'Chưa gán'),
-                COALESCE(e.status,'Đang làm')
+                SELECT
+                    e.employee_code,
+                    e.fullname,
+                    COALESCE(e.employee_type,'office'),
+                    e.department,
+                    e.position,
+                    COALESCE(s.shift_name,'Chưa gán'),
+                    COALESCE(e.status,'Đang làm')
 
             FROM employees e
 
@@ -79,6 +92,7 @@ def get_employees(keyword=""):
         columns=[
             "Mã NV",
             "Họ tên",
+            "Loại NV",
             "Phòng ban",
             "Chức vụ",
             "Ca làm",
@@ -143,7 +157,8 @@ def update_employee(
     fullname,
     department,
     position,
-    shift_code
+    shift_code,
+    employee_type
 ):
 
     with engine.connect() as conn:
@@ -155,7 +170,8 @@ def update_employee(
                 fullname=:fullname,
                 department=:department,
                 position=:position,
-                shift_code=:shift_code
+                shift_code=:shift_code,
+                employee_type=:employee_type
             WHERE employee_code=:employee_code
             """),
             {
@@ -163,7 +179,8 @@ def update_employee(
                 "fullname": fullname,
                 "department": department,
                 "position": position,
-                "shift_code": shift_code
+                "shift_code": shift_code,
+                "employee_type": employee_type
             }
         )
 
@@ -177,12 +194,15 @@ def get_employee(employee_code):
         result = conn.execute(
             text("""
             SELECT
-            employee_code,
-            fullname,
-            department,
-            position,
-            shift_code,
-            email
+                employee_code,
+                fullname,
+                company_id,
+                department_id,
+                department,
+                position,
+                email,
+                employee_type,
+                shift_code
             FROM employees
             WHERE employee_code=:employee_code
             """),
@@ -199,10 +219,13 @@ def get_employee(employee_code):
     return {
         "employee_code": row[0],
         "fullname": row[1],
-        "department": row[2],
-        "position": row[3],
-        "shift_code": row[4],
-        "email": row[5]
+        "company_id": row[2],
+        "department_id": row[3],
+        "department": row[4],
+        "position": row[5],
+        "email": row[6],
+        "employee_type": row[7],
+        "shift_code": row[8]
     }
 
 def get_employee_count():

@@ -140,7 +140,6 @@ def attendance_report(
         ]
     )
 
-
 def get_total_workday():
 
     query = """

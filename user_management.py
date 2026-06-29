@@ -8,6 +8,7 @@ def create_user(
     password,
     role,
     employee_code,
+    employee_type,
     managed_department=None
 ):
 
@@ -21,27 +22,30 @@ def create_user(
         conn.execute(
             text("""
                 INSERT INTO users(
-                username,
-                password_hash,
-                role,
-                employee_code,
-                managed_department,
-                is_active
-            )
-            VALUES(
-                :username,
-                :password_hash,
-                :role,
-                :employee_code,
-                :managed_department,
-                TRUE
-            )
+                    username,
+                    password_hash,
+                    role,
+                    employee_code,
+                    employee_type,
+                    managed_department,
+                    is_active
+                )
+                VALUES(
+                    :username,
+                    :password_hash,
+                    :role,
+                    :employee_code,
+                    :employee_type,
+                    :managed_department,
+                    TRUE
+                )
             """),
             {
                 "username": username,
                 "password_hash": password_hash,
                 "role": role,
                 "employee_code": employee_code,
+                "employee_type": employee_type,
                 "managed_department": managed_department
             }
         )
@@ -61,6 +65,7 @@ def get_users():
                 e.department,
                 u.role,
                 u.employee_code,
+                u.employee_type,
                 u.is_active
             FROM users u
             LEFT JOIN employees e
@@ -78,6 +83,7 @@ def get_users():
             "fullname",
             "department",
             "role",
+            "employee_type",
             "employee_code",
             "is_active"
         ]
@@ -206,3 +212,19 @@ def change_password(
         conn.commit()
 
         return True
+    
+def delete_user(username):
+
+    with engine.connect() as conn:
+
+        conn.execute(
+            text("""
+                DELETE FROM users
+                WHERE username=:username
+            """),
+            {
+                "username": username
+            }
+        )
+
+        conn.commit()

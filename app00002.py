@@ -21,6 +21,7 @@ from leave_request import (
     get_leave_notifications,
     mark_notification_read
 )
+from user_management import delete_user
 from monthly_report import (
     get_monthly_report,
     export_monthly_report
@@ -253,6 +254,10 @@ else:
         )
 
         role = st.session_state.user["role"]
+        employee_type = st.session_state.user.get(
+            "employee_type",
+            "office"
+        )
         pending_leave = get_pending_leave_count()
         st.write("ROLE:", role)
         leave_menu = (
@@ -267,6 +272,7 @@ else:
                 "📋 Chức năng",
                 [
                     "📊 Dashboard",
+                    "🏢 Công ty",
                     "👨‍💼 Nhân viên",
                     "🏢 Phòng ban",
                     "👔 Chức vụ",
@@ -279,7 +285,8 @@ else:
                     "📑 Báo cáo",
                     "🔑 Đổi mật khẩu",
                     "📅 Ngày lễ",
-                    "📊 Báo cáo tháng"
+                    "📊 Báo cáo tháng",
+                    "📍 Báo cáo nhân viên thị trường"
                 ]
             )
         elif role == "approver":
@@ -312,14 +319,27 @@ else:
 
         else:
 
-            menu = st.selectbox(
-                "📋 Chức năng",
-                [
-                    "📍 Chấm công",
-                    "📝 Đơn từ",
-                    "🔑 Đổi mật khẩu"
-                ]
-            )
+            if employee_type == "field":
+
+                menu = st.selectbox(
+                    "📋 Chức năng",
+                    [
+                        "✅ Công việc hôm nay",
+                        "📝 Đơn từ",
+                        "🔑 Đổi mật khẩu"
+                    ]
+                )
+
+            else:
+
+                menu = st.selectbox(
+                    "📋 Chức năng",
+                    [
+                        "📍 Chấm công",
+                        "📝 Đơn từ",
+                        "🔑 Đổi mật khẩu"
+                    ]
+                )
     from datetime import datetime
 
     header1, header2, header3 = st.columns([8,2,2])
@@ -627,15 +647,39 @@ else:
                 "Họ tên",
                 key="add_employee_name"
             )
+            from company_db import get_companies
+
+            companies = get_companies()
+
+            company_map = {
+                c["company_name"]: c["id"]
+                for c in companies
+            }
+
+            company_name = st.selectbox(
+                "🏢 Công ty",
+                list(company_map.keys())
+            )
+
+            company_id = company_map[company_name]
             email = st.text_input(
                 "Email"
             )
             from department import get_departments
 
+            departments = get_departments(company_id)
+
+            department_map = {
+                d["department_name"]: d["id"]
+                for d in departments
+            }
+
             department = st.selectbox(
-                "Phòng ban",
-                get_departments()
+                "🏢 Phòng ban",
+                list(department_map.keys())
             )
+
+            department_id = department_map[department]
 
             from position import get_positions
 
@@ -643,18 +687,30 @@ else:
                 "Chức vụ",
                 get_positions()
             )
-
+            employee_type = st.selectbox(
+                "👤 Loại nhân viên",
+                [
+                    "office",
+                    "field"
+                ],
+                format_func=lambda x:
+                    "Văn phòng"
+                    if x == "office"
+                    else "Nhân viên thị trường"
+            )
             if st.button("💾 Lưu nhân viên"):
 
                 try:
 
                     add_employee(
+                        company_id,
+                        department_id,
                         employee_code,
                         fullname,
                         department,
                         position,
-                        email
-
+                        email,
+                        employee_type
                     )
 
                     st.session_state.toast_message = (
@@ -732,7 +788,8 @@ else:
                         fullname_edit,
                         department_edit,
                         position_edit,
-                        shift_edit
+                        shift_edit,
+                        employee_data["employee_type"]
                     )
 
                     st.toast(
@@ -1148,11 +1205,12 @@ else:
         from employee import get_employees
         st.title("👤 Quản lý tài khoản")
 
-        tab1, tab2, tab3 = st.tabs(
+        tab1, tab2, tab3, tab4 = st.tabs(
             [
                 "📋 Danh sách",
                 "➕ Tạo tài khoản",
-                "✏️ Sửa tài khoản"
+                "✏️ Sửa tài khoản",
+                "🗑️ Xóa tài khoản"
             ]
         )
 
@@ -1171,6 +1229,7 @@ else:
                 "Tài khoản",
                 "Họ tên",
                 "Phòng ban",
+                "Loại NV",
                 "Vai trò",
                 "Mã NV",
                 "Kích hoạt"
@@ -1328,23 +1387,21 @@ else:
                         password,
                         role_map[role_display],
                         employee_code,
+                        employee_type,
                         managed_department
                     )
 
-                    st.toast(
-                        f"✅ Đã tạo tài khoản {username}"
+                    st.success(
+                        f"✅ Tạo tài khoản '{username}' thành công!"
                     )
 
-
-                    st.rerun()
+                    st.balloons()
 
                 except Exception as e:
 
                     st.error(
                         f"❌ Lỗi tạo tài khoản: {e}"
                     )
-
-                    st.rerun()
         with tab3:
 
             st.subheader(
@@ -1411,6 +1468,72 @@ else:
                 )
 
                 st.rerun()
+                
+        with tab4:
+
+            st.subheader("🗑️ Xóa tài khoản")
+            if "delete_success" in st.session_state:
+
+                st.success(
+                    st.session_state.delete_success
+                )
+
+                del st.session_state.delete_success
+
+            users_df = get_users()
+
+            username_delete = st.selectbox(
+                "Chọn tài khoản",
+                users_df["username"].tolist(),
+                key="delete_user"
+            )
+            confirm_delete = st.checkbox(
+                "Tôi xác nhận muốn xóa tài khoản này",
+                key="confirm_delete_user"
+            )
+            st.warning(
+                "⚠️ Thao tác này không thể hoàn tác."
+            )
+
+            if st.button(
+                "🗑️ Xóa tài khoản",
+                type="primary"
+            ):
+
+                if not confirm_delete:
+
+                    st.warning(
+                        "⚠️ Vui lòng xác nhận trước khi xóa."
+                    )
+
+                elif (
+                    username_delete
+                    ==
+                    st.session_state.user["username"]
+                ):
+
+                    st.error(
+                        "❌ Không thể xóa tài khoản đang đăng nhập."
+                    )
+
+                else:
+
+                    delete_user(
+                        username_delete
+                    )
+
+                    st.session_state.delete_success = (
+                        f"✅ Đã xóa tài khoản '{username_delete}' thành công!"
+                    )
+
+                    st.rerun()
+        
+    elif menu == "✅ Công việc hôm nay":
+
+        from field_checklist_page import show_field_checklist
+
+        show_field_checklist()
+        
     elif menu == "📝 Đơn từ":
 
         tab1, tab2 = st.tabs(
@@ -1740,6 +1863,60 @@ else:
             get_holidays(),
             use_container_width=True
         )
+        
+    elif menu == "🏢 Công ty":
+
+        from company_db import (
+            get_companies,
+            add_company
+        )
+
+        st.title("🏢 Quản lý công ty")
+
+        companies = get_companies()
+
+        if companies:
+            st.dataframe(
+                companies,
+                use_container_width=True
+            )
+
+        st.divider()
+
+        st.subheader("➕ Thêm công ty")
+
+        company_code = st.text_input("Mã công ty")
+        company_name = st.text_input("Tên công ty")
+        short_name = st.text_input("Tên viết tắt")
+        tax_code = st.text_input("Mã số thuế")
+        website = st.text_input("Website")
+        address = st.text_input("Địa chỉ")
+        phone = st.text_input("Số điện thoại")
+        email = st.text_input("Email")
+
+        if st.button("💾 Lưu công ty"):
+
+            success = add_company(
+                company_code,
+                company_name,
+                short_name,
+                tax_code,
+                website,
+                address,
+                phone,
+                email
+            )
+
+            if success:
+                st.toast("✅ Đã thêm công ty thành công!")
+
+                import time
+                time.sleep(1)
+
+                st.rerun()
+
+            else:
+                st.error("❌ Mã công ty đã tồn tại!")
     elif menu == "🏢 Phòng ban":
 
         from department import (
@@ -1996,3 +2173,11 @@ else:
                 file_name=f"BCCVP_{month}_{year}.xlsx",
                 mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
             )
+            
+    elif menu=="📍 Báo cáo nhân viên thị trường":
+
+        from field_report import (
+            show_field_report
+        )
+
+        show_field_report()

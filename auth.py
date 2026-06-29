@@ -8,9 +8,16 @@ def login(username,password):
 
         user = conn.execute(
             text("""
-            SELECT *
-            FROM users
-            WHERE username=:username
+            SELECT
+                u.*,
+                e.employee_type,
+                e.fullname,
+                e.department,
+                e.company_id
+            FROM users u
+            LEFT JOIN employees e
+            ON u.employee_code = e.employee_code
+            WHERE u.username=:username
             """),
             {"username":username}
         ).fetchone()
@@ -39,7 +46,12 @@ def login(username,password):
                     "username": username
                 }
             )
-        return dict(user._mapping)
+        user_data = dict(user._mapping)
+
+        if "employee_type" not in user_data:
+            user_data["employee_type"] = "office"
+
+        return user_data
 
     return None
 
