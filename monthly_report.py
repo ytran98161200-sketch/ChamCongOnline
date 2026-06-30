@@ -15,7 +15,13 @@ from openpyxl.styles import (
 from database import engine
 
 
-def get_monthly_report(month, year):
+def get_monthly_report(
+    month,
+    year,
+    company_id=None,
+    employee_type=None,
+    employee_code=None
+):
 
     with engine.connect() as conn:
 
@@ -25,9 +31,39 @@ def get_monthly_report(month, year):
                     employee_code,
                     fullname,
                     department
+
                 FROM employees
-                ORDER BY department, fullname
-            """)
+
+                WHERE
+
+                (
+                    :company_id IS NULL
+                    OR company_id = :company_id
+                )
+
+                AND
+
+                (
+                    :employee_type IS NULL
+                    OR employee_type = :employee_type
+                )
+
+                AND
+
+                (
+                    :employee_code IS NULL
+                    OR employee_code = :employee_code
+                )
+
+                ORDER BY
+                    department,
+                    fullname
+            """),
+            {
+                "company_id": company_id,
+                "employee_type": employee_type,
+                "employee_code": employee_code
+            }
         ).fetchall()
 
         logs = conn.execute(
@@ -142,11 +178,20 @@ def get_monthly_report(month, year):
     )
 
 
-def export_monthly_report(month, year):
+def export_monthly_report(
+    month,
+    year,
+    company_id=None,
+    employee_type=None,
+    employee_code=None
+):
 
     df = get_monthly_report(
         month,
-        year
+        year,
+        company_id,
+        employee_type,
+        employee_code
     )
 
     output = BytesIO()

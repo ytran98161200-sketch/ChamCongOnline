@@ -1202,7 +1202,8 @@ else:
             get_user,
             update_user
         )
-        from employee import get_employees
+        from employee import get_employees_by_company
+        from company_db import get_companies
         st.title("👤 Quản lý tài khoản")
 
         tab1, tab2, tab3, tab4 = st.tabs(
@@ -1334,15 +1335,7 @@ else:
                     "Nhân viên"
                 ]
             )
-            managed_department = None
-            if role_display == "Trưởng phòng":
 
-                from department import get_departments
-
-                managed_department = st.selectbox(
-                    "Phòng ban phụ trách",
-                    get_departments()
-                )
             role_map = {
                 "Admin": "admin",
                 "Trưởng phòng": "manager",
@@ -1350,7 +1343,56 @@ else:
                 "Nhân viên": "employee"
             }
 
-            employees = get_employees()
+            # ==========================
+            # Chọn công ty
+            # ==========================
+
+            from company_db import get_companies
+
+            companies = get_companies()
+
+            company_map = {
+                c["company_name"]: c["id"]
+                for c in companies
+            }
+
+            company_name = st.selectbox(
+                "🏢 Công ty",
+                list(company_map.keys()),
+                key="create_user_company"
+            )
+
+            company_id = company_map[company_name]
+
+            # ==========================
+            # Chọn phòng ban (chỉ khi là Trưởng phòng)
+            # ==========================
+
+            managed_department = None
+
+            if role_display == "Trưởng phòng":
+
+                from department import get_departments
+
+                departments = get_departments(company_id)
+
+                department_names = [
+                    d["department_name"]
+                    for d in departments
+                ]
+
+                managed_department = st.selectbox(
+                    "Phòng ban phụ trách",
+                    department_names
+                )
+
+            # ==========================
+            # Chọn nhân viên theo công ty
+            # ==========================
+
+            from employee import get_employees_by_company
+
+            employees = get_employees_by_company(company_id)
 
             employee_options = {}
 
@@ -1358,7 +1400,10 @@ else:
 
                 display = f"{row['Mã NV']} - {row['Họ tên']}"
 
-                employee_options[display] = row['Mã NV']
+                employee_options[display] = row["Mã NV"]
+
+            employee_code = ""
+            employee_type = "office"
 
             if employee_options:
 
@@ -1367,41 +1412,46 @@ else:
                     list(employee_options.keys())
                 )
 
-                employee_code = employee_options[
-                    employee_selected
-                ]
+                employee_code = employee_options[employee_selected]
+
+                selected_row = employees[
+                    employees["Mã NV"] == employee_code
+                ].iloc[0]
+
+                employee_type = selected_row["Loại NV"]
 
             else:
 
-                st.warning(
-                    "Chưa có nhân viên nào"
-                )
-
-                employee_code = ""
+                st.warning("Công ty này chưa có nhân viên.")
             if st.button("Tạo tài khoản"):
 
-                try:
+                if employee_code == "":
+                    st.error("Vui lòng chọn nhân viên.")
 
-                    create_user(
-                        username,
-                        password,
-                        role_map[role_display],
-                        employee_code,
-                        employee_type,
-                        managed_department
-                    )
+                else:
 
-                    st.success(
-                        f"✅ Tạo tài khoản '{username}' thành công!"
-                    )
+                    try:
 
-                    st.balloons()
+                        create_user(
+                            username,
+                            password,
+                            role_map[role_display],
+                            employee_code,
+                            employee_type,
+                            managed_department
+                        )
 
-                except Exception as e:
+                        st.success(
+                            f"✅ Tạo tài khoản '{username}' thành công!"
+                        )
 
-                    st.error(
-                        f"❌ Lỗi tạo tài khoản: {e}"
-                    )
+                        st.balloons()
+
+                    except Exception as e:
+
+                        st.error(
+                            f"❌ Lỗi tạo tài khoản: {e}"
+                        )
         with tab3:
 
             st.subheader(
@@ -1440,6 +1490,20 @@ else:
                     role_reverse[user_data["role"]]
                 )
             )
+            companies = get_companies()
+
+            company_map = {
+                c["company_name"]: c["id"]
+                for c in companies
+            }
+
+            company_name = st.selectbox(
+                "🏢 Công ty",
+                list(company_map.keys()),
+                key="user_company"
+            )
+
+            company_id = company_map[company_name]
 
             is_active = st.checkbox(
                 "Kích hoạt",
@@ -1714,119 +1778,324 @@ else:
     elif menu == "📑 Báo cáo":
         
         from report import attendance_report
-
+        from company_db import get_companies
+        from employee import (
+            get_employees,
+            get_employees_by_company
+        )
         st.subheader("📑 Báo cáo")
-
-        filter_type = st.selectbox(
-            "Xem dữ liệu",
+        report_mode = st.radio(
+            "Loại báo cáo",
             [
-            "Hôm nay",
-            "Hôm qua",
-            "7 ngày gần nhất",
-            "30 ngày gần nhất",
-            "Tháng này",
-            "Tháng trước",
-            "Chọn ngày bất kỳ"
-                ]
-            )
-
-        if filter_type == "Hôm nay":
-            df = attendance_report("today")
-
-        elif filter_type == "Hôm qua":
-            df = attendance_report("yesterday")
-
-        elif filter_type == "7 ngày gần nhất":
-            df = attendance_report("7days")
-
-        elif filter_type == "30 ngày gần nhất":
-            df = attendance_report("30days")
-
-        elif filter_type == "Tháng này":
-            df = attendance_report("this_month")
-
-        elif filter_type == "Tháng trước":
-            df = attendance_report("last_month")
-
-        elif filter_type == "Chọn ngày bất kỳ":
-
-            selected_date = st.date_input(
-                "📅 Chọn ngày"
-            )
-
-            df = attendance_report(
-                "custom",
-                selected_date
-            )
-
-        else:
-            df = attendance_report("today")
-
-        keyword = st.text_input(
-            "🔍 Tìm theo mã nhân viên hoặc họ tên"
+                "Báo cáo ngày",
+                "Báo cáo tháng"
+            ],
+            horizontal=True
         )
-        if keyword:
+        # ===============================
+        # Bộ lọc công ty
+        # ===============================
 
-            keyword = keyword.lower()
+        companies = get_companies()
 
-            df = df[
-                df["Mã NV"].astype(str)
-                .str.lower()
-                .str.contains(keyword)
-                |
-                df["Họ tên"].astype(str)
-                .str.lower()
-                .str.contains(keyword)
+        company_options = {"Tất cả": None}
+
+        for c in companies:
+            company_options[c["company_name"]] = c["id"]
+
+        company_name = st.selectbox(
+            "🏢 Công ty",
+            list(company_options.keys())
+        )
+
+        company_id = company_options[company_name]
+
+        # ===============================
+        # Bộ lọc loại nhân viên
+        # ===============================
+
+        employee_type_options = {
+            "Tất cả": None,
+            "Văn phòng": "office",
+            "Nhân viên thị trường": "field"
+        }
+        if report_mode == "Báo cáo ngày":
+            employee_type_filter = st.selectbox(
+                "👤 Loại nhân viên",
+                list(employee_type_options.keys())
+            )
+
+            employee_type = employee_type_options[
+                employee_type_filter
             ]
-        st.dataframe(
-            df,
-            use_container_width=True
-        )
-        if not df.empty:
 
-            output = BytesIO()
+            # ===============================
+            # Bộ lọc nhân viên
+            # ===============================
+            if company_id:
 
-            export_df = df.copy()
+                employees = get_employees_by_company(company_id)
 
-            export_df["Ngày"] = (
-                export_df["Ngày"]
-                .astype(str)
+            else:
+
+                employees = get_employees()
+
+            # Lọc tiếp theo loại nhân viên
+            if employee_type is not None:
+
+                employees = employees[
+                    employees["Loại NV"] == employee_type
+                ]
+
+            employee_options = {"Tất cả": None}
+
+            for _, row in employees.iterrows():
+
+                employee_options[
+                    f"{row['Mã NV']} - {row['Họ tên']}"
+                ] = row["Mã NV"]
+
+            employee_name = st.selectbox(
+                "👨‍💼 Nhân viên",
+                list(employee_options.keys())
             )
 
-            export_df["Check In"] = (
-                export_df["Check In"]
-                .astype(str)
-            )
-
-            export_df["Check Out"] = (
-                export_df["Check Out"]
-                .astype(str)
-            )
-
-            with pd.ExcelWriter(
-                output,
-                engine="openpyxl"
-            ) as writer:
-
-                export_df.to_excel(
-                    writer,
-                    index=False,
-                    sheet_name="Báo cáo"
+            employee_code = employee_options[
+                employee_name
+            ]
+            filter_type = st.selectbox(
+                "Xem dữ liệu",
+                [
+                "Hôm nay",
+                "Hôm qua",
+                "7 ngày gần nhất",
+                "30 ngày gần nhất",
+                "Tháng này",
+                "Tháng trước",
+                "Chọn ngày bất kỳ"
+                    ]
                 )
+
+            if filter_type == "Hôm nay":
+                df = attendance_report(
+                    "today",
+                    company_id=company_id,
+                    employee_type=employee_type,
+                    employee_code=employee_code
+                )
+
+            elif filter_type == "Hôm qua":
+                df = attendance_report(
+                    "yesterday",
+                    company_id=company_id,
+                    employee_type=employee_type,
+                    employee_code=employee_code
+                )
+
+            elif filter_type == "7 ngày gần nhất":
+                df = attendance_report(
+                        "7days",
+                        company_id=company_id,
+                        employee_type=employee_type,
+                        employee_code=employee_code
+                    )
+
+            elif filter_type == "30 ngày gần nhất":
+                df = attendance_report(
+                    "30days",
+                    company_id=company_id,
+                    employee_type=employee_type,
+                    employee_code=employee_code
+                )
+
+            elif filter_type == "Tháng này":
+                df = attendance_report(
+                        "this_month",
+                        company_id=company_id,
+                        employee_type=employee_type,
+                        employee_code=employee_code
+                    )
+
+            elif filter_type == "Tháng trước":
+                df = attendance_report(
+                        "last_month",
+                        company_id=company_id,
+                        employee_type=employee_type,
+                        employee_code=employee_code
+                    )
+
+            elif filter_type == "Chọn ngày bất kỳ":
+
+                selected_date = st.date_input(
+                    "📅 Chọn ngày"
+                )
+
+                df = attendance_report(
+                    "custom",
+                    selected_date=selected_date,
+                    company_id=company_id,
+                    employee_type=employee_type,
+                    employee_code=employee_code
+                )
+
+            else:
+                df = attendance_report(
+                    "today",
+                    company_id=company_id,
+                    employee_type=employee_type,
+                    employee_code=employee_code
+                )
+
+            keyword = st.text_input(
+                "🔍 Tìm theo mã nhân viên hoặc họ tên"
+            )
+            if keyword:
+
+                keyword = keyword.lower()
+
+                df = df[
+                    df["Mã NV"].astype(str)
+                    .str.lower()
+                    .str.contains(keyword)
+                    |
+                    df["Họ tên"].astype(str)
+                    .str.lower()
+                    .str.contains(keyword)
+                ]
+            st.dataframe(
+                df,
+                use_container_width=True
+            )
+            if not df.empty:
+
+                output = BytesIO()
+
+                export_df = df.copy()
+
+                export_df["Ngày"] = (
+                    export_df["Ngày"]
+                    .astype(str)
+                )
+
+                export_df["Check In"] = (
+                    export_df["Check In"]
+                    .astype(str)
+                )
+
+                export_df["Check Out"] = (
+                    export_df["Check Out"]
+                    .astype(str)
+                )
+
+                with pd.ExcelWriter(
+                    output,
+                    engine="openpyxl"
+                ) as writer:
+
+                    export_df.to_excel(
+                        writer,
+                        index=False,
+                        sheet_name="Báo cáo"
+                    )
+
+                st.download_button(
+                    "📥 Xuất Excel",
+                    data=output.getvalue(),
+                    file_name="bao_cao_cham_cong.xlsx",
+                    mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+                )
+
+            else:
+
+                st.warning(
+                    "Không có dữ liệu để xuất Excel."
+                )
+        else:
+            st.subheader("📊 Báo cáo tháng")
+            employee_type_filter = st.selectbox(
+                "👤 Loại nhân viên",
+                list(employee_type_options.keys()),
+                key="monthly_employee_type"
+            )
+
+            employee_type = employee_type_options[
+                employee_type_filter
+            ]
+            if company_id:
+
+                employees = get_employees_by_company(company_id)
+
+            else:
+
+                employees = get_employees()
+
+            # Lọc theo loại nhân viên
+            if employee_type is not None:
+
+                employees = employees[
+                    employees["Loại NV"] == employee_type
+                ]
+
+            employee_options = {
+                "Tất cả": None
+            }
+
+            for _, row in employees.iterrows():
+
+                employee_options[
+                    f"{row['Mã NV']} - {row['Họ tên']}"
+                ] = row["Mã NV"]
+
+            employee_name = st.selectbox(
+                "👨‍💼 Nhân viên",
+                list(employee_options.keys()),
+                key="monthly_employee"
+            )
+
+            employee_code = employee_options[
+                employee_name
+            ]
+            col1, col2 = st.columns(2)
+
+            with col1:
+                month = st.selectbox(
+                    "Tháng",
+                    range(1,13)
+                )
+
+            with col2:
+                year = st.selectbox(
+                    "Năm",
+                    range(2025,2035)
+                )
+
+            df = get_monthly_report(
+                month,
+                year,
+                company_id=company_id,
+                employee_type=employee_type,
+                employee_code=employee_code
+            )
+
+            st.dataframe(
+                df,
+                use_container_width=True
+            )
+
+            output = export_monthly_report(
+                month,
+                year,
+                company_id=company_id,
+                employee_type=employee_type,
+                employee_code=employee_code
+            )
 
             st.download_button(
                 "📥 Xuất Excel",
                 data=output.getvalue(),
-                file_name="bao_cao_cham_cong.xlsx",
+                file_name=f"BCCVP_{month}_{year}.xlsx",
                 mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
-            )
-
-        else:
-
-            st.warning(
-                "Không có dữ liệu để xuất Excel."
-            )
-            
+            )                  
     elif menu == "📅 Ngày lễ":
 
         from holiday import (
@@ -1919,6 +2188,7 @@ else:
                 st.error("❌ Mã công ty đã tồn tại!")
     elif menu == "🏢 Phòng ban":
 
+        from company_db import get_companies
         from department import (
             get_departments,
             add_department
@@ -1926,25 +2196,41 @@ else:
 
         st.title("🏢 Quản lý phòng ban")
 
-        st.write(
-            get_departments()
+        companies = get_companies()
+
+        company_map = {
+            c["company_name"]: c["id"]
+            for c in companies
+        }
+
+        company_name = st.selectbox(
+            "🏢 Công ty",
+            list(company_map.keys())
         )
+
+        company_id = company_map[company_name]
+
+        departments = get_departments(company_id)
+
+        st.dataframe(
+            departments,
+            use_container_width=True
+        )
+
+        st.divider()
 
         new_department = st.text_input(
             "Tên phòng ban mới"
         )
 
-        if st.button(
-            "➕ Thêm phòng ban"
-        ):
+        if st.button("➕ Thêm phòng ban"):
 
             add_department(
+                company_id,
                 new_department
             )
 
-            st.session_state.toast_message = (
-                "✅ Đã thêm phòng ban"
-            )
+            st.success("Đã thêm phòng ban")
 
             st.rerun()
 

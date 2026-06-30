@@ -368,3 +368,16 @@ def toggle_company_status(company_id):
                 "id": company_id
             }
         )
+        
+# =====================================
+# DANH SÁCH TÊN CÔNG TY
+# =====================================
+
+def get_company_names():
+
+    companies = get_companies(active_only=True)
+
+    return [
+        company["company_name"]
+        for company in companies
+    ]

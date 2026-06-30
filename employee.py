@@ -114,16 +114,32 @@ def delete_employee(employee_code):
         )
 
         conn.commit()
-def get_employee_codes():
+def get_employee_codes(company_id=None):
+
+    sql = """
+        SELECT employee_code
+        FROM employees
+    """
+
+    params = {}
+
+    if company_id is not None:
+
+        sql += """
+            WHERE company_id = :company_id
+        """
+
+        params["company_id"] = company_id
+
+    sql += """
+        ORDER BY employee_code
+    """
 
     with engine.connect() as conn:
 
         result = conn.execute(
-            text("""
-            SELECT employee_code
-            FROM employees
-            ORDER BY employee_code
-            """)
+            text(sql),
+            params
         )
 
         rows = result.fetchall()
@@ -341,3 +357,57 @@ def update_user_profile(
                 "username": username
             }
         )
+        
+def get_employees_by_company(company_id, keyword=""):
+
+    with engine.connect() as conn:
+
+        result = conn.execute(
+            text("""
+                SELECT
+                    employee_code,
+                    fullname,
+                    COALESCE(employee_type,'office'),
+                    department,
+                    position,
+                    COALESCE(status,'Đang làm')
+
+                FROM employees
+
+                WHERE
+
+                    company_id=:company_id
+
+                AND
+
+                (
+                    employee_code ILIKE :keyword
+
+                    OR
+
+                    fullname ILIKE :keyword
+                )
+
+                ORDER BY
+                    department,
+                    fullname
+            """),
+            {
+                "company_id": company_id,
+                "keyword": f"%{keyword}%"
+            }
+        )
+
+        rows=result.fetchall()
+
+    return pd.DataFrame(
+        rows,
+        columns=[
+            "Mã NV",
+            "Họ tên",
+            "Loại NV",
+            "Phòng ban",
+            "Chức vụ",
+            "Trạng thái"
+        ]
+    )

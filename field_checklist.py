@@ -247,31 +247,6 @@ def get_completed_count(
 
         return result.scalar()
     
-# =====================================
-# LẤY 1 CÔNG VIỆC
-# =====================================
-
-# def get_task(task_id):
-
-#     with engine.connect() as conn:
-
-#         result = conn.execute(
-#             text("""
-#                 SELECT *
-#                 FROM field_checklists
-#                 WHERE id=:id
-#             """),
-#             {
-#                 "id": task_id
-#             }
-#         )
-
-#         row = result.fetchone()
-
-#     if not row:
-#         return None
-
-#     return dict(row._mapping)
 
 # =====================================
 # SỬA CÔNG VIỆC
