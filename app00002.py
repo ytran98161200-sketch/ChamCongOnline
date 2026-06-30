@@ -1,4 +1,4 @@
-DEBUG_MODE = True
+DEBUG_MODE = False
 import streamlit as st
 from datetime import datetime
 import pytz
